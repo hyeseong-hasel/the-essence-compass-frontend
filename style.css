@@ -1,954 +1,281 @@
-/* Reset and Base Styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Essence Compass</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .bg-stars {
+            background-image: radial-gradient(circle, #fff 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-repeat: repeat;
+        }
+        .scrollable-content {
+            height: calc(100vh - 100px); /* Adjust based on header/footer size */
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="h-full antialiased text-white">
 
-:root {
-    /* Cosmic Color Palette */
-    --deep-space: #0B0C1E;
-    --cosmic-purple: #1A0B2E;
-    --nebula-blue: #16213E;
-    --starlight: #E8F4FD;
-    --golden-glow: #FFD700;
-    --rose-pink: #FF6B9D;
-    --aurora-green: #4ECDC4;
-    --cosmic-dust: rgba(255, 215, 0, 0.3);
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, addDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+
+        // Firebase configuration and initialization
+        setLogLevel('debug');
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        let app;
+        let db;
+        let auth;
+        let userId = null;
+        let unsubscribe = null;
+
+        // Message box functions
+        const showMessage = (message, isError = false) => {
+            const messageBox = document.getElementById('message-box');
+            const messageText = document.getElementById('message-text');
+            messageText.textContent = message;
+            messageBox.style.display = 'block';
+            messageBox.style.backgroundColor = isError ? '#ef4444' : '#22c55e';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 3000);
+        };
+
+        // Initialize and authenticate Firebase
+        async function initializeFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Authentication with custom token or anonymously
+                const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                if (token) {
+                    await signInWithCustomToken(auth, token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        document.getElementById('user-id').textContent = userId;
+                        console.log("Authenticated with user ID:", userId);
+                        
+                        // Set up Firestore listener after authentication
+                        if (unsubscribe) {
+                            unsubscribe();
+                        }
+                        const journalRef = collection(db, `artifacts/${appId}/users/${userId}/journal_entries`);
+                        const q = query(journalRef, orderBy("timestamp", "desc"));
+
+                        unsubscribe = onSnapshot(q, (querySnapshot) => {
+                            const entries = [];
+                            querySnapshot.forEach((doc) => {
+                                entries.push({ id: doc.id, ...doc.data() });
+                            });
+                            renderJournalEntries(entries);
+                            updateProgressMap(entries.length);
+                        }, (error) => {
+                            console.error("Error listening to journal entries:", error);
+                            showMessage("Failed to load journal entries.", true);
+                        });
+
+                    } else {
+                        console.log("No user is signed in.");
+                        userId = null;
+                        document.getElementById('user-id').textContent = 'Loading...';
+                    }
+                });
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                showMessage("Firebase initialization failed. Check the console for details.", true);
+            }
+        }
+        
+        initializeFirebase();
+
+        // Data saving function
+        window.saveJournalEntry = async () => {
+            if (!userId) {
+                showMessage("Authentication not complete. Please wait.", true);
+                return;
+            }
+
+            const trajectory = document.getElementById('trajectory-select').value;
+            const practice = document.getElementById('practice-display').textContent;
+            const entryText = document.getElementById('journal-input').value;
+
+            if (!trajectory || !entryText.trim()) {
+                showMessage("Please select a trajectory and write a journal entry.", true);
+                return;
+            }
+            
+            try {
+                const journalRef = collection(db, `artifacts/${appId}/users/${userId}/journal_entries`);
+                await addDoc(journalRef, {
+                    trajectory: trajectory,
+                    practice: practice,
+                    entryText: entryText,
+                    timestamp: serverTimestamp()
+                });
+
+                document.getElementById('journal-input').value = '';
+                showMessage("Entry saved successfully!");
+
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showMessage("Failed to save entry. See console for details.", true);
+            }
+        };
+
+        // UI rendering functions
+        const renderJournalEntries = (entries) => {
+            const journalList = document.getElementById('journal-list');
+            journalList.innerHTML = '';
+            entries.forEach(entry => {
+                const entryDiv = document.createElement('div');
+                const date = entry.timestamp ? new Date(entry.timestamp.seconds * 1000).toLocaleDateString() : 'N/A';
+                entryDiv.className = 'bg-slate-800 p-4 rounded-xl shadow-lg mb-4';
+                entryDiv.innerHTML = `
+                    <p class="text-xs text-slate-400">${date}</p>
+                    <p class="mt-1"><span class="font-bold">Trajectory:</span> ${entry.trajectory}</p>
+                    <p><span class="font-bold">Micro-Practice:</span> ${entry.practice}</p>
+                    <p class="mt-2 text-slate-300 italic">"${entry.entryText}"</p>
+                `;
+                journalList.appendChild(entryDiv);
+            });
+        };
+        
+        const updateProgressMap = (count) => {
+            const mapContainer = document.getElementById('progress-map');
+            mapContainer.innerHTML = '';
+            
+            const totalCircles = 20; // A fixed number for the map
+            for (let i = 0; i < totalCircles; i++) {
+                const circle = document.createElement('div');
+                const isLit = i < count;
+                circle.className = `w-4 h-4 rounded-full transition-all duration-300 ease-in-out transform hover:scale-125`;
+                circle.style.backgroundColor = isLit ? '#fde047' : '#334155';
+                
+                // Add a simple effect for the "constellation" feel
+                if (isLit) {
+                    circle.style.boxShadow = '0 0 8px #fde047, 0 0 16px #fde047';
+                }
+                mapContainer.appendChild(circle);
+            }
+        };
+
+        // Trajectory change handler
+        window.updatePractice = () => {
+            const select = document.getElementById('trajectory-select');
+            const display = document.getElementById('practice-display');
+            const trajectory = select.value;
+            let practice = '';
+
+            // Hardcoded recommendations for simplicity, as per the app concept
+            switch (trajectory) {
+                case 'energized':
+                    practice = 'Embrace this flow. Spend 15 minutes on a creative project or movement.';
+                    break;
+                case 'stuck':
+                    practice = 'Reflect on a small, tangible step you can take today to move forward.';
+                    break;
+                case 'confused':
+                    practice = 'Sit in silence for 5 minutes and listen to your intuition without judgment.';
+                    break;
+                case 'unaligned':
+                    practice = 'Connect with your body. Try a simple breathing exercise to ground yourself.';
+                    break;
+                default:
+                    practice = 'Select your current trajectory to receive a micro-practice.';
+                    break;
+            }
+            display.textContent = practice;
+        };
+    </script>
+
+    <!-- App UI -->
+    <div class="fixed top-0 left-0 w-full h-full -z-10 bg-slate-900 bg-stars"></div>
     
-    /* Gradients */
-    --cosmic-gradient: linear-gradient(135deg, var(--deep-space) 0%, var(--cosmic-purple) 50%, var(--nebula-blue) 100%);
-    --aurora-gradient: linear-gradient(90deg, var(--aurora-green), var(--rose-pink), var(--golden-glow));
-    --glass-gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-    
-    /* Typography */
-    --primary-font: 'Inter', sans-serif;
-    --display-font: 'Playfair Display', serif;
-    
-    /* Spacing */
-    --space-xs: 0.5rem;
-    --space-sm: 1rem;
-    --space-md: 1.5rem;
-    --space-lg: 2rem;
-    --space-xl: 3rem;
-    
-    /* Borders */
-    --border-radius: 16px;
-    --border-radius-lg: 24px;
-}
-
-body {
-    font-family: var(--primary-font);
-    background: var(--cosmic-gradient);
-    color: var(--starlight);
-    min-height: 100vh;
-    overflow-x: hidden;
-    position: relative;
-}
-
-/* Loading Screen */
-.loading-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--cosmic-gradient);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    transition: opacity 0.5s ease, visibility 0.5s ease;
-}
-
-.loading-screen.hidden {
-    opacity: 0;
-    visibility: hidden;
-}
-
-.cosmic-loader {
-    position: relative;
-    width: 60px;
-    height: 60px;
-    margin-bottom: var(--space-md);
-}
-
-.cosmic-loader .star {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    background: var(--golden-glow);
-    border-radius: 50%;
-    animation: cosmic-pulse 2s ease-in-out infinite;
-}
-
-.cosmic-loader .star:nth-child(1) {
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    animation-delay: 0s;
-}
-
-.cosmic-loader .star:nth-child(2) {
-    top: 50%;
-    right: 0;
-    transform: translateY(-50%);
-    animation-delay: 0.7s;
-}
-
-.cosmic-loader .star:nth-child(3) {
-    bottom: 0;
-    left: 0;
-    animation-delay: 1.4s;
-}
-
-@keyframes cosmic-pulse {
-    0%, 100% { opacity: 0.3; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.2); }
-}
-
-/* Background Stars Animation */
-.stars-background {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    z-index: -1;
-}
-
-.stars {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: 
-        radial-gradient(2px 2px at 20px 30px, rgba(255, 255, 255, 0.8), transparent),
-        radial-gradient(2px 2px at 40px 70px, rgba(255, 215, 0, 0.6), transparent),
-        radial-gradient(1px 1px at 90px 40px, rgba(255, 255, 255, 0.5), transparent),
-        radial-gradient(1px 1px at 130px 80px, rgba(76, 205, 196, 0.4), transparent),
-        radial-gradient(2px 2px at 160px 30px, rgba(255, 107, 157, 0.6), transparent);
-    background-repeat: repeat;
-    background-size: 200px 100px;
-    animation: sparkle 20s linear infinite;
-}
-
-.stars2 {
-    background-size: 400px 200px;
-    animation: sparkle 40s linear infinite reverse;
-}
-
-.stars3 {
-    background-size: 300px 150px;
-    animation: sparkle 30s linear infinite;
-}
-
-@keyframes sparkle {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-200px); }
-}
-
-/* App Container */
-.app-container {
-    min-height: 100vh;
-    padding-bottom: 80px;
-    transition: opacity 0.5s ease;
-}
-
-.app-container.hidden {
-    opacity: 0;
-}
-
-/* Header */
-.app-header {
-    padding: var(--space-md) var(--space-sm);
-    backdrop-filter: blur(20px);
-    background: rgba(11, 12, 30, 0.8);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.app-title {
-    font-family: var(--display-font);
-    font-size: 1.8rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    background: var(--aurora-gradient);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.cosmic-icon {
-    font-size: 1.5rem;
-    color: var(--golden-glow);
-    animation: gentle-rotate 10s linear infinite;
-}
-
-@keyframes gentle-rotate {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-}
-
-.user-info .cosmic-dust {
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-    font-weight: 500;
-}
-
-.user-info .cosmic-dust i {
-    color: var(--golden-glow);
-}
-
-.user-info .streak {
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-}
-
-.user-info .streak i {
-    color: var(--rose-pink);
-}
-
-/* Main Content */
-.main-content {
-    max-width: 1200px;
-    margin: var(--space-lg) auto var(--space-xl) auto;
-    padding: 0 var(--space-sm);
-    display: grid;
-    gap: var(--space-xl);
-}
-
-/* Section Container */
-.content-section {
-    display: none;
-    animation: fadeIn 0.8s ease-out;
-}
-
-.content-section.active {
-    display: block;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Card Styles */
-.glass-card {
-    background: var(--glass-gradient);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--border-radius-lg);
-    padding: var(--space-xl);
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}
-
-.glass-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--aurora-gradient);
-    opacity: 0.6;
-}
-
-.glass-card h2 {
-    font-family: var(--display-font);
-    font-size: 2rem;
-    font-weight: 600;
-    background: var(--aurora-gradient);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: var(--space-md);
-}
-
-.glass-card p {
-    font-size: 1rem;
-    line-height: 1.5;
-    color: rgba(232, 244, 253, 0.8);
-    margin-bottom: var(--space-md);
-}
-
-/* Compass Section */
-.compass-section {
-    display: grid;
-    gap: var(--space-xl);
-    grid-template-columns: 1fr;
-    justify-items: center;
-}
-
-.compass-visual {
-    position: relative;
-    width: 300px;
-    height: 300px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: var(--space-xl);
-}
-
-.compass-visual::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 80%;
-    height: 80%;
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.compass-center {
-    width: 20px;
-    height: 20px;
-    background: var(--golden-glow);
-    border-radius: 50%;
-    border: 2px solid var(--starlight);
-    z-index: 10;
-}
-
-.compass-needle {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 4px;
-    height: 120px;
-    background: var(--rose-pink);
-    transform-origin: bottom center;
-    transform: translate(-50%, -100%) rotate(0deg);
-    border-radius: 4px 4px 0 0;
-    transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1.2);
-    z-index: 9;
-}
-
-.energy-options {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-md);
-    margin-top: var(--space-md);
-}
-
-.energy-btn {
-    padding: var(--space-sm) var(--space-md);
-    border-radius: var(--border-radius);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--starlight);
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.3s ease, border-color 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-xs);
-}
-
-.energy-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.energy-btn.selected {
-    background: rgba(255, 215, 0, 0.2);
-    border-color: var(--golden-glow);
-    box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-}
-
-.presence-slider {
-    width: 100%;
-    margin-top: var(--space-lg);
-}
-
-.presence-slider label {
-    display: block;
-    margin-bottom: var(--space-xs);
-    font-weight: 500;
-}
-
-.presence-slider input[type="range"] {
-    width: 100%;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    outline: none;
-    -webkit-appearance: none;
-}
-
-.presence-slider input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
-    background: var(--golden-glow);
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
-}
-
-.slider-labels {
-    display: flex;
-    justify-content: space-between;
-    margin-top: var(--space-xs);
-    font-size: 0.875rem;
-    color: rgba(232, 244, 253, 0.7);
-}
-
-/* Button Styles */
-.primary-btn,
-.secondary-btn,
-.tertiary-btn {
-    padding: var(--space-md) var(--space-lg);
-    border-radius: var(--border-radius);
-    border: none;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-xs);
-    font-family: var(--primary-font);
-    position: relative;
-    overflow: hidden;
-}
-
-.primary-btn {
-    background: var(--aurora-gradient);
-    color: var(--deep-space);
-    box-shadow: 0 5px 15px rgba(255, 107, 157, 0.3);
-}
-
-.primary-btn:hover {
-    box-shadow: 0 8px 20px rgba(255, 107, 157, 0.4);
-    transform: translateY(-2px);
-}
-
-.secondary-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: var(--starlight);
-}
-
-.secondary-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.tertiary-btn {
-    background: none;
-    border: none;
-    color: var(--aurora-green);
-    font-size: 1rem;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-}
-
-.tertiary-btn:hover {
-    opacity: 0.8;
-}
-
-.btn-container {
-    display: flex;
-    justify-content: center;
-    gap: var(--space-md);
-    margin-top: var(--space-lg);
-}
-
-/* Guidance Card */
-.guidance-card {
-    display: none;
-}
-
-/* Practice Timer */
-.timer-display {
-    font-size: 2.5rem;
-    font-family: monospace;
-    font-weight: 600;
-    color: var(--golden-glow);
-    margin-top: var(--space-md);
-}
-
-.timer-display.hidden {
-    display: none;
-}
-
-/* Journal Section */
-.journal-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-xl);
-    align-items: start;
-}
-
-.journal-entry-card {
-    background: var(--glass-gradient);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--border-radius-lg);
-    padding: var(--space-lg);
-    position: relative;
-    overflow: hidden;
-}
-
-.journal-entry-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--aurora-gradient);
-    opacity: 0.6;
-}
-
-.journal-prompt {
-    font-style: italic;
-    font-size: 1.1rem;
-    line-height: 1.5;
-    color: rgba(232, 244, 253, 0.9);
-    margin-bottom: var(--space-lg);
-}
-
-.journal-entry-card textarea {
-    width: 100%;
-    min-height: 200px;
-    background: rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: var(--border-radius);
-    padding: var(--space-md);
-    color: var(--starlight);
-    font-family: var(--primary-font);
-    font-size: 1rem;
-    resize: vertical;
-    outline: none;
-    transition: all 0.3s ease;
-}
-
-.journal-entry-card textarea:focus {
-    border-color: var(--aurora-green);
-    box-shadow: 0 0 10px rgba(76, 205, 196, 0.3);
-}
-
-.journal-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: var(--space-md);
-}
-
-.journal-history {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--border-radius);
-    padding: var(--space-md);
-    max-height: 500px;
-    overflow-y: auto;
-}
-
-.journal-entry-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-}
-
-.journal-entry-item {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--border-radius);
-    padding: var(--space-md);
-    transition: background 0.3s ease;
-}
-
-.journal-entry-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.journal-entry-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.875rem;
-    color: rgba(232, 244, 253, 0.7);
-    margin-bottom: var(--space-xs);
-}
-
-.entry-preview {
-    color: var(--starlight);
-    line-height: 1.4;
-}
-
-/* Rose Circle Section */
-.rose-circle-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-xl);
-    align-items: start;
-}
-
-@media (max-width: 768px) {
-    .rose-circle-container {
-        grid-template-columns: 1fr;
-    }
-}
-
-.send-rose-card {
-    background: var(--glass-gradient);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--border-radius-lg);
-    padding: var(--space-lg);
-    position: relative;
-    overflow: hidden;
-}
-
-.send-rose-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--aurora-gradient);
-    opacity: 0.6;
-}
-
-.rose-visual {
-    text-align: center;
-    margin: var(--space-md) 0;
-}
-
-.rose-visual i {
-    font-size: 4rem;
-    color: var(--rose-pink);
-    animation: gentle-pulse 3s ease-in-out infinite;
-}
-
-@keyframes gentle-pulse {
-    0%, 100% { transform: scale(1); opacity: 0.8; }
-    50% { transform: scale(1.1); opacity: 1; }
-}
-
-.rose-message-input {
-    width: 100%;
-    min-height: 100px;
-    background: rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: var(--border-radius);
-    padding: var(--space-md);
-    color: var(--starlight);
-    font-family: var(--primary-font);
-    font-size: 1rem;
-    resize: vertical;
-    outline: none;
-}
-
-.rose-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: var(--space-md);
-}
-
-.received-roses-card {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--border-radius);
-    padding: var(--space-md);
-    max-height: 500px;
-    overflow-y: auto;
-}
-
-.rose-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-}
-
-.rose-item {
-    background: rgba(255, 255, 255, 0.05);
-    border-left: 3px solid var(--rose-pink);
-    border-radius: var(--border-radius);
-    padding: var(--space-md);
-    transition: background 0.3s ease;
-}
-
-.rose-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.rose-message-text {
-    font-style: italic;
-    color: rgba(232, 244, 253, 0.9);
-    margin-bottom: var(--space-xs);
-}
-
-.rose-meta {
-    font-size: 0.75rem;
-    color: rgba(232, 244, 253, 0.6);
-}
-
-/* Modal Styling */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 200;
-    transition: opacity 0.3s ease;
-}
-
-.modal.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-.modal-content {
-    background: var(--deep-space);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: var(--border-radius-lg);
-    padding: var(--space-xl);
-    text-align: center;
-    position: relative;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    max-width: 400px;
-    margin: var(--space-lg);
-    animation: scaleIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1.2);
-}
-
-@keyframes scaleIn {
-    from { transform: scale(0.8); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-
-.modal-icon {
-    font-size: 3rem;
-    color: var(--golden-glow);
-    margin-bottom: var(--space-md);
-    animation: gentle-pulse 3s ease-in-out infinite;
-}
-
-.modal-title {
-    font-family: var(--display-font);
-    font-size: 1.5rem;
-    font-weight: 600;
-    background: var(--aurora-gradient);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: var(--space-xs);
-}
-
-.modal-message {
-    font-size: 1rem;
-    color: rgba(232, 244, 253, 0.8);
-    line-height: 1.5;
-    margin-bottom: var(--space-lg);
-}
-
-.close-modal-btn {
-    padding: var(--space-sm) var(--space-md);
-    background: var(--golden-glow);
-    color: var(--deep-space);
-    border: none;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    font-weight: 500;
-}
-
-/* Footer Navigation */
-.main-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(11, 12, 30, 0.8);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    justify-content: space-around;
-    padding: var(--space-sm) 0;
-    z-index: 100;
-}
-
-.nav-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    color: rgba(232, 244, 253, 0.6);
-    cursor: pointer;
-    transition: color 0.3s ease, transform 0.3s ease;
-}
-
-.nav-btn.active,
-.nav-btn:hover {
-    color: var(--starlight);
-    transform: translateY(-2px);
-}
-
-.nav-btn i {
-    font-size: 1.5rem;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .header-content {
-        flex-direction: column;
-        text-align: center;
-        gap: var(--space-sm);
-    }
-    
-    .main-content {
-        padding-top: var(--space-md);
-    }
-    
-    .journal-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .rose-circle-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .modal-content {
-        margin: var(--space-sm);
-        padding: var(--space-lg);
-    }
-    
-    .main-content {
-        padding: var(--space-md) var(--space-sm);
-    }
-}
-
-@media (max-width: 360px) {
-    .compass-visual {
-        width: 200px;
-        height: 200px;
-    }
-    
-    .compass-needle {
-        height: 80px;
-    }
-    
-    .header-content {
-        flex-direction: column;
-        gap: var(--space-sm);
-    }
-}
-
-/* Print Styles */
-@media print {
-    .stars-background,
-    .loading-screen,
-    .main-nav {
-        display: none;
-    }
-    
-    .app-container {
-        background: white;
-        color: black;
-    }
-    
-    .glass-card,
-    .check-in-card,
-    .guidance-card {
-        background: white;
-        border: 1px solid #ccc;
-    }
-}
-
-/* High Contrast Mode */
-@media (prefers-contrast: high) {
-    :root {
-        --starlight: #ffffff;
-        --deep-space: #000000;
-        --cosmic-purple: #000000;
-        --nebula-blue: #000000;
-        --golden-glow: #ffff00;
-        --rose-pink: #ff00ff;
-        --aurora-green: #00ff00;
-    }
-    
-    body {
-        background: var(--deep-space);
-    }
-    
-    .app-header,
-    .main-nav,
-    .glass-card,
-    .send-rose-card,
-    .journal-entry-card {
-        background: var(--deep-space);
-        border-color: var(--starlight);
-        box-shadow: none;
-    }
-    
-    .primary-btn {
-        background: var(--starlight);
-        color: var(--deep-space);
-    }
-    
-    .secondary-btn {
-        background: var(--deep-space);
-        color: var(--starlight);
-        border-color: var(--starlight);
-    }
-    
-    .tertiary-btn {
-        color: var(--aurora-green);
-    }
-    
-    .compass-visual {
-        background: var(--deep-space);
-        border-color: var(--starlight);
-    }
-    
-    .compass-needle {
-        background: var(--rose-pink);
-    }
-    
-    .journal-history,
-    .received-roses-card,
-    .journal-entry-item,
-    .rose-item {
-        background: var(--deep-space);
-        border-color: var(--starlight);
-    }
-    
-    .rose-item {
-        border-left-color: var(--rose-pink);
-    }
-}
+    <div class="min-h-full flex items-center justify-center p-4">
+        <div class="w-full max-w-2xl bg-slate-900 bg-opacity-80 backdrop-blur-sm rounded-3xl shadow-2xl p-6 md:p-10 border border-slate-700">
+            
+            <!-- Message Box -->
+            <div id="message-box" class="fixed top-4 left-1/2 -translate-x-1/2 hidden bg-green-500 text-white text-center p-3 rounded-xl shadow-lg transition-all duration-300 z-50">
+                <span id="message-text"></span>
+            </div>
+
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-teal-400 via-sky-400 to-blue-500 text-transparent bg-clip-text">
+                    The Essence Compass
+                </h1>
+                <p class="text-sm md:text-base text-slate-400 mt-2">
+                    Navigate your inner world to find your authentic self.
+                </p>
+                <div class="mt-4 text-xs md:text-sm text-slate-500">
+                    Your User ID: <span id="user-id" class="text-slate-300 font-mono break-all">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Interstellar Activation Map (Progress Tracker) -->
+            <div class="mb-8 p-6 bg-slate-800 rounded-2xl border border-slate-700">
+                <h2 class="text-2xl font-bold mb-4">Your Soul Essence Map</h2>
+                <div id="progress-map" class="grid grid-cols-5 gap-4 justify-items-center">
+                    <!-- Circles will be rendered here by JS -->
+                </div>
+                <p class="text-sm text-center text-slate-400 mt-4">
+                    Your map grows with each daily check-in.
+                </p>
+            </div>
+
+            <!-- Daily Check-in -->
+            <div class="mb-8 p-6 bg-slate-800 rounded-2xl border border-slate-700">
+                <h2 class="text-2xl font-bold mb-4">Daily Check-in</h2>
+                <label for="trajectory-select" class="block text-slate-400 mb-2">My current trajectory is:</label>
+                <select id="trajectory-select" onchange="updatePractice()" class="w-full p-3 rounded-xl bg-slate-700 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-400">
+                    <option value="" disabled selected>Choose your current state</option>
+                    <option value="energized">Energized</option>
+                    <option value="stuck">Stuck</option>
+                    <option value="confused">Confused</option>
+                    <option value="unaligned">Unaligned</option>
+                </select>
+                <div id="practice-display" class="mt-4 p-4 rounded-xl bg-slate-700 border border-slate-600 text-slate-300 italic">
+                    Select your current trajectory to receive a micro-practice.
+                </div>
+            </div>
+
+            <!-- Transformation Journal -->
+            <div class="p-6 bg-slate-800 rounded-2xl border border-slate-700">
+                <h2 class="text-2xl font-bold mb-4">Transformation Journal</h2>
+                <textarea id="journal-input" rows="4" placeholder="Write about your day, your practice, and any reflections you have..." class="w-full p-3 rounded-xl bg-slate-700 border border-slate-600 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400"></textarea>
+                <button onclick="saveJournalEntry()" class="w-full mt-4 py-3 px-6 rounded-xl text-lg font-semibold bg-blue-600 hover:bg-blue-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 focus:ring-offset-slate-800">
+                    Save Check-in
+                </button>
+            </div>
+            
+            <!-- Past Entries Section -->
+            <div class="mt-8 p-6 bg-slate-800 rounded-2xl border border-slate-700">
+                <h2 class="text-2xl font-bold mb-4">Past Entries</h2>
+                <div id="journal-list" class="space-y-4 max-h-96 overflow-y-auto">
+                    <p class="text-center text-slate-400 italic">No entries yet. Your journal will appear here.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
