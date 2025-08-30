@@ -51,7 +51,8 @@ const elements = {
     messageBox: document.getElementById('message-box'),
     messageText: document.getElementById('message-text'),
     loginCta: document.getElementById('login-cta'),
-    loggedInContent: document.getElementById('logged-in-content')
+    loggedInContent: document.getElementById('logged-in-content'),
+    loginMessage: document.getElementById('login-message')
 };
 
 // Global State
@@ -63,7 +64,7 @@ const appState = {
     isLoggedIn: localStorage.getItem('userLoggedIn') === 'true'
 };
 
-// Utility function to show a temporary message
+// Utility function to show a temporary message on the main app page
 const showMessage = (message, type = 'success') => {
     elements.messageText.textContent = message;
     
@@ -81,6 +82,17 @@ const showMessage = (message, type = 'success') => {
     setTimeout(() => {
         elements.messageBox.classList.add('hidden');
     }, 3000);
+};
+
+// New function to show messages on the login page
+const showLoginMessage = (message, type = 'error') => {
+    if (elements.loginMessage) {
+        elements.loginMessage.textContent = message;
+        elements.loginMessage.classList.remove('hidden');
+        if (type === 'error') {
+            elements.loginMessage.classList.add('bg-red-800');
+        }
+    }
 };
 
 // Function to handle state updates from buttons
@@ -207,13 +219,13 @@ const updateProgressMap = () => {
 // Check if user is logged in and show appropriate content
 const checkLoginStatus = () => {
     if (appState.isLoggedIn) {
-        elements.loginCta.classList.add('hidden');
-        elements.loggedInContent.classList.remove('hidden');
+        if (elements.loginCta) elements.loginCta.classList.add('hidden');
+        if (elements.loggedInContent) elements.loggedInContent.classList.remove('hidden');
         renderJournalEntries();
         updateProgressMap();
     } else {
-        elements.loginCta.classList.remove('hidden');
-        elements.loggedInContent.classList.add('hidden');
+        if (elements.loginCta) elements.loginCta.classList.remove('hidden');
+        if (elements.loggedInContent) elements.loggedInContent.classList.add('hidden');
     }
 };
 
@@ -228,8 +240,10 @@ const initializeApp = () => {
             elements.loadingPortal.classList.add('opacity-0');
             elements.loadingPortal.addEventListener('transitionend', () => {
                 elements.loadingPortal.remove();
-                elements.mainApp.classList.remove('opacity-0');
-                checkLoginStatus(); // Check login status after loading is complete
+                if (elements.mainApp) {
+                    elements.mainApp.classList.remove('opacity-0');
+                    checkLoginStatus(); // Check login status after loading is complete
+                }
             });
         }, 2000);
     }
@@ -243,23 +257,37 @@ const initializeApp = () => {
     }
 };
 
+// Hard-coded user for demonstration
+const registeredUser = {
+    email: 'test@user.com',
+    password: 'password123'
+};
+
 // Handle a successful login
 const handleLogin = (event) => {
-    event.preventDefault(); // Prevent the form from submitting normally
-    // In a real app, you would send this data to a server for authentication.
-    // For this demonstration, we'll just show a success message and simulate a login.
-    localStorage.setItem('userLoggedIn', 'true'); // Simulate a login
-    alert('Login successful!');
-    window.location.href = 'index.html'; // Redirect back to the homepage
+    event.preventDefault();
+    const emailInput = document.getElementById('email').value;
+    const passwordInput = document.getElementById('password').value;
+    
+    // Check if the input matches our hard-coded user
+    if (emailInput === registeredUser.email && passwordInput === registeredUser.password) {
+        // Simulate a successful login
+        localStorage.setItem('userLoggedIn', 'true');
+        alert('Login successful!');
+        window.location.href = 'index.html';
+    } else {
+        // Handle login failure
+        showLoginMessage('Incorrect email or password. Please try again or reset your password.');
+    }
 };
 
 // Handle a successful registration
 const handleRegistration = (event) => {
-    event.preventDefault(); // Prevent the form from submitting normally
+    event.preventDefault();
     // In a real app, you would send this data to a server for account creation.
     // For this demonstration, we'll just show a success message.
     alert('Registration successful! Please log in with your new account.');
-    window.location.href = 'login.html'; // Redirect to the login page
+    window.location.href = 'login.html';
 };
 
 
