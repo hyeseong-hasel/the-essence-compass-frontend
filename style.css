@@ -7,14 +7,15 @@ body {
 
 /* Base cosmic background styles with animations */
 .bg-cosmic {
-    background: radial-gradient(circle at center, rgba(30, 27, 75, 1) 0%, rgba(20, 15, 50, 1) 100%);
-    position: fixed;
+      background: radial-gradient(circle at center, rgba(30, 27, 75, 1) 0%, rgba(20, 15, 50, 1) 100%);
+    position: relative; /* Change this to relative or remove entirely */
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    min-height: 100vh; /* Replaces height: 100% */
     z-index: -2;
     transition: all 1s ease-in-out;
+}
 }
 
 .stars {
