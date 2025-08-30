@@ -194,17 +194,48 @@ const updateProgressMap = () => {
 
 // Initial app setup
 const initializeApp = () => {
-    // Simulate a loading delay
-    setTimeout(() => {
-        elements.loadingPortal.classList.add('opacity-0');
-        elements.loadingPortal.addEventListener('transitionend', () => {
-            elements.loadingPortal.remove();
-            elements.mainApp.classList.remove('opacity-0');
-        });
-    }, 2000);
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
 
-    renderJournalEntries();
-    updateProgressMap();
+    if (elements.loadingPortal) {
+        // Simulate a loading delay for the main page
+        setTimeout(() => {
+            elements.loadingPortal.classList.add('opacity-0');
+            elements.loadingPortal.addEventListener('transitionend', () => {
+                elements.loadingPortal.remove();
+                elements.mainApp.classList.remove('opacity-0');
+            });
+        }, 2000);
+        renderJournalEntries();
+        updateProgressMap();
+    }
+    
+    // Add event listeners for the new forms
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+    }
+    if (registerForm) {
+        registerForm.addEventListener('submit', handleRegistration);
+    }
 };
+
+// Handle a successful login
+const handleLogin = (event) => {
+    event.preventDefault(); // Prevent the form from submitting normally
+    // In a real app, you would send this data to a server for authentication.
+    // For this demonstration, we'll just show a success message.
+    alert('Login successful!');
+    window.location.href = 'index.html'; // Redirect back to the homepage
+};
+
+// Handle a successful registration
+const handleRegistration = (event) => {
+    event.preventDefault(); // Prevent the form from submitting normally
+    // In a real app, you would send this data to a server for account creation.
+    // For this demonstration, we'll just show a success message.
+    alert('Registration successful! Please log in with your new account.');
+    window.location.href = 'login.html'; // Redirect to the login page
+};
+
 
 document.addEventListener('DOMContentLoaded', initializeApp);

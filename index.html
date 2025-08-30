@@ -10,7 +10,6 @@
 </head>
 <body class="min-h-screen antialiased text-white bg-cosmic">
 
-    <!-- Loading Portal -->
     <div id="loading-portal">
         <div class="spark"></div>
         <div class="cosmic-dust-container">
@@ -22,16 +21,13 @@
         <p id="loading-text" class="text-xl md:text-2xl mt-8 text-slate-300">Aligning with your essence...</p>
     </div>
 
-    <!-- Main App Container -->
     <div id="main-app" class="min-h-full flex items-center justify-center p-4 opacity-0 transition-opacity duration-500">
         <div class="w-full max-w-2xl bg-slate-900 bg-opacity-70 backdrop-blur-sm rounded-3xl shadow-2xl p-6 md:p-10 border border-violet-800 glowing-shadow pulsing-card">
             
-            <!-- Message Box -->
             <div id="message-box" class="fixed top-4 left-1/2 -translate-x-1/2 hidden bg-green-500 text-white text-center p-3 rounded-xl shadow-lg transition-all duration-300 z-50">
                 <span id="message-text"></span>
             </div>
 
-            <!-- Header -->
             <div class="text-center mb-8">
                 <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-300 via-fuchsia-400 to-rose-400 text-transparent bg-clip-text">
                     The Essence Compass
@@ -41,18 +37,15 @@
                 </p>
             </div>
 
-            <!-- Interstellar Activation Map (Progress Tracker) -->
             <div class="mb-8 p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
                 <h2 class="text-2xl font-bold mb-4 text-center">Your Soul Essence Map</h2>
                 <div id="progress-map" class="grid grid-cols-5 gap-4 justify-items-center">
-                    <!-- Circles will be rendered here by JS -->
-                </div>
+                    </div>
                 <p class="text-sm text-center text-slate-400 mt-4">
                     Your map grows brighter with each check-in.
                 </p>
             </div>
 
-            <!-- Daily Compass Check-in -->
             <div class="mb-8 p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
                 <h2 class="text-2xl font-bold mb-2 text-center">Your Daily Compass</h2>
                 <p class="text-slate-400 mb-6 text-center">Connect with your essence and receive guidance for today.</p>
@@ -83,7 +76,6 @@
                 </div>
             </div>
 
-            <!-- Transformation Journal -->
             <div class="p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
                 <h2 class="text-2xl font-bold mb-4 text-center">Transformation Journal</h2>
                 <textarea id="journal-input" rows="4" placeholder="Share your reflections and discoveries here..." class="w-full p-3 rounded-xl bg-slate-700 border border-slate-600 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-400"></textarea>
@@ -92,12 +84,17 @@
                 </button>
             </div>
             
-            <!-- Past Entries Section -->
             <div class="mt-8 p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
                 <h2 class="text-2xl font-bold mb-4 text-center">Your Journey So Far</h2>
                 <div id="journal-list" class="space-y-4 max-h-96 overflow-y-auto">
                     <p class="text-center text-slate-400 italic">Your cosmic journey begins here. Entries will appear after your first check-in.</p>
                 </div>
+            </div>
+            
+            <div class="text-center mt-8">
+                <a href="login.html" class="inline-block py-3 px-8 rounded-full text-lg font-semibold bg-violet-600 hover:bg-violet-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-400 focus:ring-offset-slate-800 btn-glow">
+                    Continue to Login
+                </a>
             </div>
         </div>
     </div>
