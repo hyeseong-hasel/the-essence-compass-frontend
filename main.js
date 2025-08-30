@@ -52,7 +52,10 @@ const elements = {
     messageText: document.getElementById('message-text'),
     loginCta: document.getElementById('login-cta'),
     loggedInContent: document.getElementById('logged-in-content'),
-    loginMessage: document.getElementById('login-message')
+    loginMessage: document.getElementById('login-message'),
+    registerMessage: document.getElementById('register-message'),
+    registerMessageText: document.getElementById('register-message-text'),
+    registerForm: document.getElementById('register-form')
 };
 
 // Global State
@@ -92,6 +95,15 @@ const showLoginMessage = (message, type = 'error') => {
         if (type === 'error') {
             elements.loginMessage.classList.add('bg-red-800');
         }
+    }
+};
+
+// New function to show messages on the register page
+const showRegisterMessage = (message) => {
+    if (elements.registerMessage && elements.registerMessageText) {
+        elements.registerMessageText.textContent = message;
+        elements.registerForm.classList.add('hidden');
+        elements.registerMessage.classList.remove('hidden');
     }
 };
 
@@ -286,8 +298,8 @@ const handleRegistration = (event) => {
     event.preventDefault();
     // In a real app, you would send this data to a server for account creation.
     // For this demonstration, we'll just show a success message.
-    alert('Registration successful! Please log in with your new account.');
-    window.location.href = 'login.html';
+    showRegisterMessage('Registration successful! You can now log in with your new account.');
+    // The form is now hidden, and the user can click the "Go to Login" link.
 };
 
 
