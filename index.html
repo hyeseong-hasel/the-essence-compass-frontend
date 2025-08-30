@@ -37,64 +37,67 @@
                 </p>
             </div>
 
-            <div class="mb-8 p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
-                <h2 class="text-2xl font-bold mb-4 text-center">Your Soul Essence Map</h2>
-                <div id="progress-map" class="grid grid-cols-5 gap-4 justify-items-center">
-                    </div>
-                <p class="text-sm text-center text-slate-400 mt-4">
-                    Your map grows brighter with each check-in.
-                </p>
-            </div>
-
-            <div class="mb-8 p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
-                <h2 class="text-2xl font-bold mb-2 text-center">Your Daily Compass</h2>
-                <p class="text-slate-400 mb-6 text-center">Connect with your essence and receive guidance for today.</p>
-
-                <div class="mb-6">
-                    <p class="font-semibold text-sm mb-2 text-center">What is your heart center telling you right now?</p>
-                    <div class="space-y-4">
-                        <p class="font-semibold text-sm text-slate-400">Current Energy State:</p>
-                        <div class="grid grid-cols-2 gap-4">
-                            <button onclick="updateState('energy', 'Stuck', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Stuck</button>
-                            <button onclick="updateState('energy', 'Flowing', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Flowing</button>
-                            <button onclick="updateState('energy', 'Energized', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Energized</button>
-                            <button onclick="updateState('energy', 'Confused', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Confused</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <p class="font-semibold text-sm text-slate-400">How is your presence showing up today?</p>
-                    <div class="grid grid-cols-2 gap-4 mt-4">
-                        <button onclick="updateState('presence', 'Scattered', this)" class="btn-option presence-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Scattered</button>
-                        <button onclick="updateState('presence', 'Centered', this)" class="btn-option presence-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Centered</button>
-                    </div>
-                </div>
-
-                <div id="practice-display" class="mt-6 p-4 rounded-2xl bg-slate-700 border border-slate-600 text-slate-300 italic text-center radiate">
-                    Select your current energy and presence to receive a personalized micro-practice.
-                </div>
-            </div>
-
-            <div class="p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
-                <h2 class="text-2xl font-bold mb-4 text-center">Transformation Journal</h2>
-                <textarea id="journal-input" rows="4" placeholder="Share your reflections and discoveries here..." class="w-full p-3 rounded-xl bg-slate-700 border border-slate-600 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-400"></textarea>
-                <button onclick="saveJournalEntry()" class="w-full mt-4 py-3 px-6 rounded-full text-lg font-semibold bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fuchsia-400 focus:ring-offset-slate-800 btn-glow">
-                    Save Check-in
-                </button>
-            </div>
-            
-            <div class="mt-8 p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
-                <h2 class="text-2xl font-bold mb-4 text-center">Your Journey So Far</h2>
-                <div id="journal-list" class="space-y-4 max-h-96 overflow-y-auto">
-                    <p class="text-center text-slate-400 italic">Your cosmic journey begins here. Entries will appear after your first check-in.</p>
-                </div>
-            </div>
-            
-            <div class="text-center mt-8">
+            <div id="login-cta" class="text-center mt-8">
+                <p class="text-slate-400 mb-4">You are not logged in. Please log in or register to begin your journey.</p>
                 <a href="login.html" class="inline-block py-3 px-8 rounded-full text-lg font-semibold bg-violet-600 hover:bg-violet-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-400 focus:ring-offset-slate-800 btn-glow">
                     Continue to Login
                 </a>
+            </div>
+
+            <div id="logged-in-content" class="space-y-8 hidden">
+                <div class="mb-8 p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
+                    <h2 class="text-2xl font-bold mb-4 text-center">Your Soul Essence Map</h2>
+                    <div id="progress-map" class="grid grid-cols-5 gap-4 justify-items-center">
+                        </div>
+                    <p class="text-sm text-center text-slate-400 mt-4">
+                        Your map grows brighter with each check-in.
+                    </p>
+                </div>
+
+                <div class="p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
+                    <h2 class="text-2xl font-bold mb-2 text-center">Your Daily Compass</h2>
+                    <p class="text-slate-400 mb-6 text-center">Connect with your essence and receive guidance for today.</p>
+
+                    <div class="mb-6">
+                        <p class="font-semibold text-sm mb-2 text-center">What is your heart center telling you right now?</p>
+                        <div class="space-y-4">
+                            <p class="font-semibold text-sm text-slate-400">Current Energy State:</p>
+                            <div class="grid grid-cols-2 gap-4">
+                                <button onclick="updateState('energy', 'Stuck', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Stuck</button>
+                                <button onclick="updateState('energy', 'Flowing', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Flowing</button>
+                                <button onclick="updateState('energy', 'Energized', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Energized</button>
+                                <button onclick="updateState('energy', 'Confused', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Confused</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="font-semibold text-sm text-slate-400">How is your presence showing up today?</p>
+                        <div class="grid grid-cols-2 gap-4 mt-4">
+                            <button onclick="updateState('presence', 'Scattered', this)" class="btn-option presence-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Scattered</button>
+                            <button onclick="updateState('presence', 'Centered', this)" class="btn-option presence-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Centered</button>
+                        </div>
+                    </div>
+
+                    <div id="practice-display" class="mt-6 p-4 rounded-2xl bg-slate-700 border border-slate-600 text-slate-300 italic text-center radiate">
+                        Select your current energy and presence to receive a personalized micro-practice.
+                    </div>
+                </div>
+
+                <div class="p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
+                    <h2 class="text-2xl font-bold mb-4 text-center">Transformation Journal</h2>
+                    <textarea id="journal-input" rows="4" placeholder="Share your reflections and discoveries here..." class="w-full p-3 rounded-xl bg-slate-700 border border-slate-600 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-400"></textarea>
+                    <button onclick="saveJournalEntry()" class="w-full mt-4 py-3 px-6 rounded-full text-lg font-semibold bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fuchsia-400 focus:ring-offset-slate-800 btn-glow">
+                        Save Check-in
+                    </button>
+                </div>
+                
+                <div class="mt-8 p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
+                    <h2 class="text-2xl font-bold mb-4 text-center">Your Journey So Far</h2>
+                    <div id="journal-list" class="space-y-4 max-h-96 overflow-y-auto">
+                        <p class="text-center text-slate-400 italic">Your cosmic journey begins here. Entries will appear after your first check-in.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

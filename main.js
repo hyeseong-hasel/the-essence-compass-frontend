@@ -49,7 +49,9 @@ const elements = {
     journalInput: document.getElementById('journal-input'),
     journalList: document.getElementById('journal-list'),
     messageBox: document.getElementById('message-box'),
-    messageText: document.getElementById('message-text')
+    messageText: document.getElementById('message-text'),
+    loginCta: document.getElementById('login-cta'),
+    loggedInContent: document.getElementById('logged-in-content')
 };
 
 // Global State
@@ -57,7 +59,8 @@ const appState = {
     currentEnergy: '',
     currentPresence: '',
     journalEntries: JSON.parse(localStorage.getItem('journalEntries')) || [],
-    checkInCount: parseInt(localStorage.getItem('checkInCount')) || 0
+    checkInCount: parseInt(localStorage.getItem('checkInCount')) || 0,
+    isLoggedIn: localStorage.getItem('userLoggedIn') === 'true'
 };
 
 // Utility function to show a temporary message
@@ -82,6 +85,11 @@ const showMessage = (message, type = 'success') => {
 
 // Function to handle state updates from buttons
 window.updateState = (type, value, button) => {
+    // Check if the user is logged in before allowing interaction
+    if (!appState.isLoggedIn) {
+        showMessage('Please log in to use the daily compass.', 'error');
+        return;
+    }
     // Clear 'selected' class from all buttons of the same type
     document.querySelectorAll(`.${type}-btn`).forEach(btn => {
         btn.classList.remove('selected');
@@ -123,6 +131,10 @@ const showPractice = () => {
 
 // Function to save a journal entry
 window.saveJournalEntry = () => {
+    if (!appState.isLoggedIn) {
+        showMessage('Please log in to save your check-in.', 'error');
+        return;
+    }
     const entryText = elements.journalInput.value.trim();
     if (entryText.length > 0) {
         const newEntry = {
@@ -192,6 +204,19 @@ const updateProgressMap = () => {
     }
 };
 
+// Check if user is logged in and show appropriate content
+const checkLoginStatus = () => {
+    if (appState.isLoggedIn) {
+        elements.loginCta.classList.add('hidden');
+        elements.loggedInContent.classList.remove('hidden');
+        renderJournalEntries();
+        updateProgressMap();
+    } else {
+        elements.loginCta.classList.remove('hidden');
+        elements.loggedInContent.classList.add('hidden');
+    }
+};
+
 // Initial app setup
 const initializeApp = () => {
     const loginForm = document.getElementById('login-form');
@@ -204,10 +229,9 @@ const initializeApp = () => {
             elements.loadingPortal.addEventListener('transitionend', () => {
                 elements.loadingPortal.remove();
                 elements.mainApp.classList.remove('opacity-0');
+                checkLoginStatus(); // Check login status after loading is complete
             });
         }, 2000);
-        renderJournalEntries();
-        updateProgressMap();
     }
     
     // Add event listeners for the new forms
@@ -223,7 +247,8 @@ const initializeApp = () => {
 const handleLogin = (event) => {
     event.preventDefault(); // Prevent the form from submitting normally
     // In a real app, you would send this data to a server for authentication.
-    // For this demonstration, we'll just show a success message.
+    // For this demonstration, we'll just show a success message and simulate a login.
+    localStorage.setItem('userLoggedIn', 'true'); // Simulate a login
     alert('Login successful!');
     window.location.href = 'index.html'; // Redirect back to the homepage
 };
