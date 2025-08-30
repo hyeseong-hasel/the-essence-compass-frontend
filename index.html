@@ -1,107 +1,155 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-900">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Essence Compass</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.58/build/Tone.min.js"></script>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="min-h-screen antialiased text-white bg-cosmic">
+<body>
+    <div class="stars-background"></div>
 
-    <div id="loading-portal">
-        <div class="spark"></div>
-        <div class="cosmic-dust-container">
-            <div class="stars" style="animation-delay: 0s;"></div>
-            <div class="stars" style="animation-delay: -10s;"></div>
-            <div class="stars" style="animation-delay: -20s;"></div>
-            <div class="stars" style="animation-delay: -30s;"></div>
+    <div id="loading-screen" class="loading-screen">
+        <div class="cosmic-loader">
+            <div class="star"></div>
+            <div class="star"></div>
+            <div class="star"></div>
         </div>
-        <p id="loading-text" class="text-xl md:text-2xl mt-8 text-slate-300">Aligning with your essence...</p>
+        <p>Aligning with your essence...</p>
     </div>
 
-    <div id="main-app" class="min-h-full flex items-center justify-center p-4 opacity-0 transition-opacity duration-500">
-        <div class="w-full max-w-2xl bg-slate-900 bg-opacity-70 backdrop-blur-sm rounded-3xl shadow-2xl p-6 md:p-10 border border-violet-800 glowing-shadow pulsing-card">
-            
-            <div id="message-box" class="fixed top-4 left-1/2 -translate-x-1/2 hidden bg-green-500 text-white text-center p-3 rounded-xl shadow-lg transition-all duration-300 z-50">
-                <span id="message-text"></span>
-            </div>
-
-            <div class="text-center mb-8">
-                <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-300 via-fuchsia-400 to-rose-400 text-transparent bg-clip-text">
+    <div id="app-container" class="app-container hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <h1 class="app-title">
+                    <i class="fas fa-compass cosmic-icon"></i>
                     The Essence Compass
                 </h1>
-                <p class="text-sm md:text-base text-slate-300 mt-2">
-                    Welcome back, <span id="user-name" class="font-bold text-fuchsia-300">Visionary</span>.
-                </p>
             </div>
+        </header>
 
-            <div id="login-cta" class="text-center mt-8">
-                <p class="text-slate-400 mb-4">You are not logged in. Please log in or register to begin your journey.</p>
-                <a href="login.html" class="inline-block py-3 px-8 rounded-full text-lg font-semibold bg-violet-600 hover:bg-violet-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-400 focus:ring-offset-slate-800 btn-glow">
-                    Continue to Login
-                </a>
-            </div>
+        <nav class="main-nav">
+            <button class="nav-btn active" data-section="welcome">
+                <i class="fas fa-hand-sparkles"></i>
+                <span>Welcome</span>
+            </button>
+            <button class="nav-btn" data-section="journey">
+                <i class="fas fa-leaf"></i>
+                <span>Rose Journey</span>
+            </button>
+            <button class="nav-btn" data-section="karma">
+                <i class="fas fa-feather-alt"></i>
+                <span>Karma Senses</span>
+            </button>
+            <button class="nav-btn" data-section="ultradian">
+                <i class="fas fa-moon"></i>
+                <span>Ultradian Flow</span>
+            </button>
+            <button class="nav-btn" data-section="mapping">
+                <i class="fas fa-map-marked-alt"></i>
+                <span>Soul Map</span>
+            </button>
+        </nav>
 
-            <div id="logged-in-content" class="space-y-8 hidden">
-                <div class="mb-8 p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
-                    <h2 class="text-2xl font-bold mb-4 text-center">Your Soul Essence Map</h2>
-                    <div id="progress-map" class="grid grid-cols-5 gap-4 justify-items-center">
-                        </div>
-                    <p class="text-sm text-center text-slate-400 mt-4">
-                        Your map grows brighter with each check-in.
-                    </p>
+        <main class="main-content">
+            <section id="welcome-section" class="content-section active">
+                <div class="section-header">
+                    <h2 class="display-font">Welcome, Soul Explorer</h2>
+                    <p>This is a gentle journey of self-discovery.</p>
                 </div>
-
-                <div class="p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
-                    <h2 class="text-2xl font-bold mb-2 text-center">Your Daily Compass</h2>
-                    <p class="text-slate-400 mb-6 text-center">Connect with your essence and receive guidance for today.</p>
-
-                    <div class="mb-6">
-                        <p class="font-semibold text-sm mb-2 text-center">What is your heart center telling you right now?</p>
-                        <div class="space-y-4">
-                            <p class="font-semibold text-sm text-slate-400">Current Energy State:</p>
-                            <div class="grid grid-cols-2 gap-4">
-                                <button onclick="updateState('energy', 'Stuck', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Stuck</button>
-                                <button onclick="updateState('energy', 'Flowing', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Flowing</button>
-                                <button onclick="updateState('energy', 'Energized', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Energized</button>
-                                <button onclick="updateState('energy', 'Confused', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Confused</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <p class="font-semibold text-sm text-slate-400">How is your presence showing up today?</p>
-                        <div class="grid grid-cols-2 gap-4 mt-4">
-                            <button onclick="updateState('presence', 'Scattered', this)" class="btn-option presence-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Scattered</button>
-                            <button onclick="updateState('presence', 'Centered', this)" class="btn-option presence-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Centered</button>
-                        </div>
-                    </div>
-
-                    <div id="practice-display" class="mt-6 p-4 rounded-2xl bg-slate-700 border border-slate-600 text-slate-300 italic text-center radiate">
-                        Select your current energy and presence to receive a personalized micro-practice.
-                    </div>
-                </div>
-
-                <div class="p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
-                    <h2 class="text-2xl font-bold mb-4 text-center">Transformation Journal</h2>
-                    <textarea id="journal-input" rows="4" placeholder="Share your reflections and discoveries here..." class="w-full p-3 rounded-xl bg-slate-700 border border-slate-600 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-400"></textarea>
-                    <button onclick="saveJournalEntry()" class="w-full mt-4 py-3 px-6 rounded-full text-lg font-semibold bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fuchsia-400 focus:ring-offset-slate-800 btn-glow">
-                        Save Check-in
+                <div class="glass-card">
+                    <p>We'll explore your inner landscape with gentle curiosity, mapping the beautiful terrain of your soul's true essence. No forcing, no judgment - just loving exploration of who you authentically are. </p>
+                    <button class="primary-btn mt-md" id="start-journey-btn">
+                        <i class="fas fa-heart"></i> Begin Your Journey
                     </button>
                 </div>
-                
-                <div class="mt-8 p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
-                    <h2 class="text-2xl font-bold mb-4 text-center">Your Journey So Far</h2>
-                    <div id="journal-list" class="space-y-4 max-h-96 overflow-y-auto">
-                        <p class="text-center text-slate-400 italic">Your cosmic journey begins here. Entries will appear after your first check-in.</p>
+            </section>
+
+            <section id="journey-section" class="content-section hidden">
+                <div class="section-header">
+                    <h2 class="display-font">The Rose Nurturing Journey</h2>
+                    <p>Connect with the message your heart is holding.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Your Future Self Is Already Here</h3>
+                    <p>Your highest potential isn't something you need to create—it already exists. Your future self is constantly sending you signals through your body. </p>
+                    <div class="micro-practice">
+                        <h4>Gentle practice - The 30-Second Heart Hello:</h4>
+                        <ul>
+                            <li>Place one hand softly on your heart.</li>
+                            <li>Take a breath and feel for any warmth or gentle expansion.</li>
+                            <li>Whisper: "I'm here. I'm listening."</li>
+                        </ul>
                     </div>
                 </div>
-            </div>
-        </div>
+                <div class="glass-card mt-md">
+                    <h3>The Message Your Heart Is Holding</h3>
+                    <p>Doubt isn't protecting you; it's blocking the loving guidance trying to reach you. Your deepest wisdom is meant to be felt, not figured out. </p>
+                    <button class="primary-btn mt-md" id="show-cta-modal-btn">
+                        <i class="fas fa-arrow-right"></i> Continue Your Journey
+                    </button>
+                </div>
+            </section>
+
+            <section id="karma-section" class="content-section hidden">
+                <div class="section-header">
+                    <h2 class="display-font">The 5 Senses of Karma</h2>
+                    <p>Bring loving awareness to how you touch the world.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Sacred Touch: The Energetic Hands</h3>
+                    <p>Your hands are pure channels of energy, and everything you touch receives your vibration. The energy you carry is either healing or harming—there's no neutral. </p>
+                    <div class="micro-practice">
+                        <h4>Healing practice - Sacred Touch Awakening:</h4>
+                        <ul>
+                            <li>Press your palms gently together in front of your heart.</li>
+                            <li>Feel the warmth and subtle energy between them.</li>
+                            <li>Whisper: "These hands carry love wherever they go."</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="ultradian-section" class="content-section hidden">
+                <div class="section-header">
+                    <h2 class="display-font">Reclaim Your Rhythm</h2>
+                    <p>Honor the ultradian rhythm of energy and renewal.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Finding Inner Sanctuary</h3>
+                    <p>This practice creates space for deep restoration while maintaining harmonious energy flow. Your unique rhythm is a sacred journey. </p>
+                    <div class="micro-practice">
+                        <h4>Core Practice Script:</h4>
+                        <ul>
+                            <li>Find a quiet space and create "sacred darkness."</li>
+                            <li>Take a deep breath into your belly and release any tension.</li>
+                            <li>Feel yourself settling into stillness.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="mapping-section" class="content-section hidden">
+                <div class="section-header">
+                    <h2 class="display-font">Soul Essence Mapping</h2>
+                    <p>Map your soul's unique energetic blueprint.</p>
+                </div>
+                <div class="glass-card">
+                    <p>This experience is an invitation to understand yourself at the deepest level, where your unique gifts and natural wisdom reside. </p>
+                    <button class="primary-btn mt-md" id="map-cta-btn">
+                        <i class="fas fa-rocket"></i> Begin Your Deep Dive
+                    </button>
+                </div>
+            </section>
+        </main>
     </div>
 
-    <script src="main.js" type="module"></script>
-</body>
-</html>
+    <div id="cta-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <div class="modal-body">
+                <i class="fas fa-gem modal-icon"></i>
+                <h3 class="display-font">Ready for Full Immersion?</h3>
+                <p>The deepest transformative practices, including journaling and personalized
