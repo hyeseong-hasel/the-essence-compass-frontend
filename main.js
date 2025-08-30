@@ -1,5 +1,5 @@
-// The Essence Compass - Main JavaScript File
-// This file is simplified and corrected to work with the provided HTML and CSS.
+// Add this line at the top to configure the API URL
+const API_URL = 'https://the-essence-compass-backend.onrender.com'; // Replace with your Render URL
 
 // Micro-practices database (remains the same)
 const MICRO_PRACTICES = [
@@ -31,236 +31,298 @@ const MICRO_PRACTICES = [
         id: 'clarity-pause',
         title: 'Compass Reset',
         icon: 'fas fa-compass',
-        description: 'Close your eyes and ask: "What do I need to know right now?" Listen for the first gentle whisper that comes.',
+        description: 'Close your eyes and ask: "What do I need to center on right now?" Wait for the answer, then proceed with intention.',
         duration: 45,
         energy: 'Confused'
     }
 ];
 
-// Cache DOM elements
-const elements = {
-    loadingPortal: document.getElementById('loading-portal'),
-    mainApp: document.getElementById('main-app'),
-    progressMap: document.getElementById('progress-map'),
-    userName: document.getElementById('user-name'),
-    energyButtons: document.querySelectorAll('.energy-btn'),
-    presenceButtons: document.querySelectorAll('.presence-btn'),
-    practiceDisplay: document.getElementById('practice-display'),
-    journalInput: document.getElementById('journal-input'),
-    journalList: document.getElementById('journal-list'),
-    messageBox: document.getElementById('message-box'),
-    messageText: document.getElementById('message-text'),
-    loginCta: document.getElementById('login-cta'),
-    loggedInContent: document.getElementById('logged-in-content'),
-    loginMessage: document.getElementById('login-message'),
-    registerMessage: document.getElementById('register-message'),
-    registerMessageText: document.getElementById('register-message-text'),
-    registerForm: document.getElementById('register-form')
+// --- Utility Functions (unchanged) ---
+
+// Get today's date in a readable format
+const getFormattedDate = () => {
+    const today = new Date();
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return today.toLocaleDateString('en-US', options);
 };
 
-// Global State
-const appState = {
-    currentEnergy: '',
-    currentPresence: '',
-    journalEntries: JSON.parse(localStorage.getItem('journalEntries')) || [],
-    checkInCount: parseInt(localStorage.getItem('checkInCount')) || 0,
-    isLoggedIn: localStorage.getItem('userLoggedIn') === 'true'
-};
-
-// Utility function to show a temporary message on the main app page
-const showMessage = (message, type = 'success') => {
-    elements.messageText.textContent = message;
-    
-    // Set background color based on type
-    if (type === 'success') {
-        elements.messageBox.classList.add('bg-green-500');
-        elements.messageBox.classList.remove('bg-red-500');
-    } else {
-        elements.messageBox.classList.add('bg-red-500');
-        elements.messageBox.classList.remove('bg-green-500');
+// Show a message on the login page
+const showLoginMessage = (message, isError = true) => {
+    const messageBox = document.getElementById('login-message');
+    if (messageBox) {
+        messageBox.textContent = message;
+        messageBox.classList.remove('hidden');
+        messageBox.classList.remove('bg-green-800', 'bg-red-800');
+        messageBox.classList.add(isError ? 'bg-red-800' : 'bg-green-800');
     }
-    
-    elements.messageBox.classList.remove('hidden');
-    
-    setTimeout(() => {
-        elements.messageBox.classList.add('hidden');
-    }, 3000);
 };
 
-// New function to show messages on the login page
-const showLoginMessage = (message, type = 'error') => {
-    if (elements.loginMessage) {
-        elements.loginMessage.textContent = message;
-        elements.loginMessage.classList.remove('hidden');
-        if (type === 'error') {
-            elements.loginMessage.classList.add('bg-red-800');
+// Show a message on the registration page
+const showRegisterMessage = (message, isError = false) => {
+    const messageBox = document.getElementById('register-message');
+    const messageText = document.getElementById('register-message-text');
+    if (messageBox && messageText) {
+        messageText.textContent = message;
+        messageBox.classList.remove('hidden');
+        const form = document.getElementById('register-form');
+        if (form) {
+            form.classList.add('hidden');
         }
     }
 };
 
-// New function to show messages on the register page
-const showRegisterMessage = (message) => {
-    if (elements.registerMessage && elements.registerMessageText) {
-        elements.registerMessageText.textContent = message;
-        elements.registerForm.classList.add('hidden');
-        elements.registerMessage.classList.remove('hidden');
+// Get user state from session storage or initialize it
+const getUserState = () => {
+    const state = JSON.parse(localStorage.getItem('userState')) || {};
+    return {
+        energy: state.energy || null,
+        presence: state.presence || null
+    };
+};
+
+// Save user state to session storage
+const saveUserState = (state) => {
+    localStorage.setItem('userState', JSON.stringify(state));
+};
+
+// Update the selected option in the UI
+const updateState = (type, value, element) => {
+    const state = getUserState();
+    state[type] = value;
+    saveUserState(state);
+
+    const buttons = document.querySelectorAll(`.${type}-btn`);
+    buttons.forEach(btn => btn.classList.remove('selected', 'bg-violet-600', 'hover:bg-violet-500'));
+    element.classList.add('selected', 'bg-violet-600');
+
+    // Update the background animation based on the energy state
+    document.body.className = `min-h-screen antialiased text-white bg-cosmic state-${state.energy ? state.energy.toLowerCase() : ''}`;
+    
+    // Check if a micro-practice can be displayed
+    checkAndDisplayPractice();
+};
+
+// Get a micro-practice based on the current energy state
+const getMicroPractice = (energyState) => {
+    return MICRO_PRACTICES.find(p => p.energy === energyState);
+};
+
+// Display a micro-practice if both states are selected
+const checkAndDisplayPractice = () => {
+    const state = getUserState();
+    const practiceDisplay = document.getElementById('practice-display');
+    
+    if (state.energy && state.presence && practiceDisplay) {
+        const practice = getMicroPractice(state.energy);
+        if (practice) {
+            practiceDisplay.innerHTML = `
+                <h3 class="text-xl font-bold mb-2 text-fuchsia-300">${practice.title}</h3>
+                <p class="text-slate-200">${practice.description}</p>
+                <p class="text-sm mt-2 text-slate-400 italic">Duration: ${practice.duration} seconds</p>
+            `;
+        }
     }
 };
 
-// Function to handle state updates from buttons
-window.updateState = (type, value, button) => {
-    // Check if the user is logged in before allowing interaction
-    if (!appState.isLoggedIn) {
-        showMessage('Please log in to use the daily compass.', 'error');
-        return;
-    }
-    // Clear 'selected' class from all buttons of the same type
-    document.querySelectorAll(`.${type}-btn`).forEach(btn => {
-        btn.classList.remove('selected');
-        btn.style.backgroundColor = ''; // Clear inline style if any
-        btn.style.color = '';
-    });
+// Save a journal entry
+const saveJournalEntry = () => {
+    const journalInput = document.getElementById('journal-input');
+    const entryText = journalInput.value.trim();
 
-    // Add 'selected' class to the clicked button
-    button.classList.add('selected');
-    button.style.backgroundColor = '#8B5CF6';
-    button.style.color = 'white';
-
-    // Update global state
-    if (type === 'energy') {
-        appState.currentEnergy = value;
-        // Also apply the state-based CSS class to the body for the background effect
-        document.body.className = document.body.className.replace(/state-\w+/g, ''); // Remove old state
-        document.body.classList.add(`state-${value.toLowerCase()}`); // Add new one
-    } else {
-        appState.currentPresence = value;
-    }
-
-    // Check if both have been selected to trigger the practice display
-    if (appState.currentEnergy && appState.currentPresence) {
-        showPractice();
-    }
-};
-
-// Function to display the personalized micro-practice
-const showPractice = () => {
-    const practice = MICRO_PRACTICES.find(p => p.energy === appState.currentEnergy) || MICRO_PRACTICES[0];
-    elements.practiceDisplay.innerHTML = `
-        <p class="font-bold text-lg mb-2 text-fuchsia-400">${practice.title}</p>
-        <p>${practice.description}</p>
-        <p class="mt-4 text-xs italic text-slate-500">Practice duration: ${practice.duration} seconds</p>
-    `;
-    elements.practiceDisplay.classList.add('radiate');
-};
-
-// Function to save a journal entry
-window.saveJournalEntry = () => {
-    if (!appState.isLoggedIn) {
-        showMessage('Please log in to save your check-in.', 'error');
-        return;
-    }
-    const entryText = elements.journalInput.value.trim();
-    if (entryText.length > 0) {
-        const newEntry = {
-            id: Date.now(),
+    if (entryText) {
+        const entry = {
+            date: getFormattedDate(),
             text: entryText,
-            timestamp: new Date().toISOString(),
-            energy: appState.currentEnergy || 'Not selected',
-            presence: appState.currentPresence || 'Not selected'
+            energy: getUserState().energy,
+            presence: getUserState().presence,
         };
 
-        // Add to state and local storage
-        appState.journalEntries.unshift(newEntry);
-        localStorage.setItem('journalEntries', JSON.stringify(appState.journalEntries));
+        const entries = JSON.parse(localStorage.getItem('journalEntries')) || [];
+        entries.unshift(entry);
+        localStorage.setItem('journalEntries', JSON.stringify(entries));
 
-        // Update UI
-        elements.journalInput.value = '';
+        journalInput.value = '';
         renderJournalEntries();
-        updateProgressMap();
-        showMessage('Check-in saved successfully!');
-    } else {
-        showMessage('Please write something in your journal before saving.', 'error');
+        renderProgressMap();
+        showMessage('Check-in saved!');
+        
+        // Reset states after saving
+        saveUserState({});
+        resetUIStates();
     }
 };
 
-// Function to render past journal entries
-const renderJournalEntries = () => {
-    elements.journalList.innerHTML = '';
-    if (appState.journalEntries.length === 0) {
-        elements.journalList.innerHTML = `<p class="text-center text-slate-400 italic">Your cosmic journey begins here. Entries will appear after your first check-in.</p>`;
-    } else {
-        appState.journalEntries.forEach(entry => {
-            const date = new Date(entry.timestamp).toLocaleDateString('en-US', {
-                year: 'numeric', month: 'long', day: 'numeric'
-            });
-            const entryElement = document.createElement('div');
-            entryElement.className = 'bg-slate-700 p-4 rounded-xl border border-slate-600';
-            entryElement.innerHTML = `
-                <p class="text-xs text-slate-400 mb-2">${date}</p>
-                <p class="text-sm italic text-slate-300 mb-2">Energy: ${entry.energy} | Presence: ${entry.presence}</p>
-                <p>${entry.text}</p>
-            `;
-            elements.journalList.appendChild(entryElement);
-        });
+const resetUIStates = () => {
+    const buttons = document.querySelectorAll('.btn-option');
+    buttons.forEach(btn => btn.classList.remove('selected', 'bg-violet-600', 'hover:bg-violet-500'));
+    const practiceDisplay = document.getElementById('practice-display');
+    if (practiceDisplay) {
+        practiceDisplay.innerHTML = 'Select your current energy and presence to receive a personalized micro-practice.';
     }
 };
 
-// Function to update the progress map
-const updateProgressMap = () => {
-    // Increment check-in count and save
-    appState.checkInCount = appState.journalEntries.length;
-    localStorage.setItem('checkInCount', appState.checkInCount);
+// Display a message box at the top of the screen
+const showMessage = (message, duration = 3000) => {
+    const messageBox = document.getElementById('message-box');
+    const messageText = document.getElementById('message-text');
+    if (messageBox && messageText) {
+        messageText.textContent = message;
+        messageBox.classList.remove('hidden');
+        setTimeout(() => {
+            messageBox.classList.add('hidden');
+        }, duration);
+    }
+};
 
-    elements.progressMap.innerHTML = '';
-    const totalCircles = 5;
+// Render the progress map based on saved entries
+const renderProgressMap = () => {
+    const progressMap = document.getElementById('progress-map');
+    if (!progressMap) return;
     
-    for (let i = 0; i < totalCircles; i++) {
-        const circle = document.createElement('div');
-        circle.className = 'map-circle';
+    const entries = JSON.parse(localStorage.getItem('journalEntries')) || [];
+    const maxCircles = 20;
+    const completedCount = entries.length > maxCircles ? maxCircles : entries.length;
+    
+    let mapHtml = '';
+    for (let i = 0; i < maxCircles; i++) {
+        const isActive = i < completedCount;
+        mapHtml += `<div class="map-circle ${isActive ? 'completed' : ''}"></div>`;
+    }
+    progressMap.innerHTML = mapHtml;
+};
+
+// Render the journal entries in the UI
+const renderJournalEntries = () => {
+    const journalList = document.getElementById('journal-list');
+    if (!journalList) return;
+    
+    const entries = JSON.parse(localStorage.getItem('journalEntries')) || [];
+    if (entries.length === 0) {
+        journalList.innerHTML = '<p class="text-center text-slate-400 italic">Your cosmic journey begins here. Entries will appear after your first check-in.</p>';
+        return;
+    }
+
+    let entriesHtml = '';
+    entries.forEach(entry => {
+        entriesHtml += `
+            <div class="p-4 bg-slate-700 rounded-lg">
+                <p class="text-sm text-slate-400 mb-1">${entry.date}</p>
+                <p class="text-white">${entry.text}</p>
+                <p class="text-sm mt-2 italic text-fuchsia-300">Energy: ${entry.energy || 'N/A'}, Presence: ${entry.presence || 'N/A'}</p>
+            </div>
+        `;
+    });
+    journalList.innerHTML = entriesHtml;
+};
+
+// --- New and Updated Core Functions ---
+
+// Handle a user login with the backend API
+const handleLogin = async (event) => {
+    event.preventDefault();
+    const emailInput = document.getElementById('email').value;
+    const passwordInput = document.getElementById('password').value;
+    
+    try {
+        const response = await fetch(`${API_URL}/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: emailInput, password: passwordInput })
+        });
         
-        if (i < appState.checkInCount) {
-            circle.classList.add('completed');
-        } else if (i === appState.checkInCount) {
-            circle.classList.add('active');
+        const data = await response.json();
+        
+        if (response.ok) {
+            localStorage.setItem('userLoggedIn', 'true');
+            console.log(data); // Log the response from the server
+            alert('Login successful!');
+            window.location.href = 'index.html';
+        } else {
+            showLoginMessage(data.message || 'Login failed. Please check your credentials.');
         }
+    } catch (error) {
+        showLoginMessage('Network error. Could not connect to the server.');
+    }
+};
+
+// Handle a user registration with the backend API
+const handleRegistration = async (event) => {
+    event.preventDefault();
+    const usernameInput = document.getElementById('username').value;
+    const emailInput = document.getElementById('email').value;
+    const passwordInput = document.getElementById('password').value;
+    
+    try {
+        const response = await fetch(`${API_URL}/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username: usernameInput, email: emailInput, password: passwordInput })
+        });
+
+        const data = await response.json();
         
-        elements.progressMap.appendChild(circle);
+        if (response.ok) {
+            showRegisterMessage(data.message || 'Registration successful!');
+        } else {
+            showRegisterMessage(data.message || 'Registration failed. Please try again.');
+        }
+    } catch (error) {
+        showRegisterMessage('Network error. Could not connect to the server.');
     }
 };
 
-// Check if user is logged in and show appropriate content
-const checkLoginStatus = () => {
-    if (appState.isLoggedIn) {
-        if (elements.loginCta) elements.loginCta.classList.add('hidden');
-        if (elements.loggedInContent) elements.loggedInContent.classList.remove('hidden');
+// --- Page Initialization (unchanged) ---
+
+const initPage = () => {
+    const isLoggedIn = localStorage.getItem('userLoggedIn') === 'true';
+    const loginCta = document.getElementById('login-cta');
+    const loggedInContent = document.getElementById('logged-in-content');
+    const userNameElement = document.getElementById('user-name');
+    const loadingPortal = document.getElementById('loading-portal');
+    const mainApp = document.getElementById('main-app');
+    
+    if (isLoggedIn) {
+        if (loginCta && loggedInContent) {
+            loginCta.classList.add('hidden');
+            loggedInContent.classList.remove('hidden');
+        }
+        if (userNameElement) {
+            // In a real app, you would fetch the user's name from the backend
+            userNameElement.textContent = 'Visionary';
+        }
+        renderProgressMap();
         renderJournalEntries();
-        updateProgressMap();
     } else {
-        if (elements.loginCta) elements.loginCta.classList.remove('hidden');
-        if (elements.loggedInContent) elements.loggedInContent.classList.add('hidden');
+        if (loginCta && loggedInContent) {
+            loginCta.classList.remove('hidden');
+            loggedInContent.classList.add('hidden');
+        }
     }
-};
 
-// Initial app setup
-const initializeApp = () => {
+    // Portal animation
+    if (loadingPortal && mainApp) {
+        setTimeout(() => {
+            const spark = loadingPortal.querySelector('.spark');
+            if (spark) {
+                spark.classList.add('swoosh-transition');
+            }
+        }, 500);
+        setTimeout(() => {
+            loadingPortal.style.opacity = '0';
+        }, 1500);
+        setTimeout(() => {
+            loadingPortal.style.display = 'none';
+            mainApp.style.opacity = '1';
+        }, 2500);
+    }
+
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
-
-    if (elements.loadingPortal) {
-        // Simulate a loading delay for the main page
-        setTimeout(() => {
-            elements.loadingPortal.classList.add('opacity-0');
-            elements.loadingPortal.addEventListener('transitionend', () => {
-                elements.loadingPortal.remove();
-                if (elements.mainApp) {
-                    elements.mainApp.classList.remove('opacity-0');
-                    checkLoginStatus(); // Check login status after loading is complete
-                }
-            });
-        }, 2000);
-    }
     
-    // Add event listeners for the new forms
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
     }
@@ -269,38 +331,5 @@ const initializeApp = () => {
     }
 };
 
-// Hard-coded user for demonstration
-const registeredUser = {
-    email: 'test@user.com',
-    password: 'password123'
-};
-
-// Handle a successful login
-const handleLogin = (event) => {
-    event.preventDefault();
-    const emailInput = document.getElementById('email').value;
-    const passwordInput = document.getElementById('password').value;
-    
-    // Check if the input matches our hard-coded user
-    if (emailInput === registeredUser.email && passwordInput === registeredUser.password) {
-        // Simulate a successful login
-        localStorage.setItem('userLoggedIn', 'true');
-        alert('Login successful!');
-        window.location.href = 'index.html';
-    } else {
-        // Handle login failure
-        showLoginMessage('Incorrect email or password. Please try again or reset your password.');
-    }
-};
-
-// Handle a successful registration
-const handleRegistration = (event) => {
-    event.preventDefault();
-    // In a real app, you would send this data to a server for account creation.
-    // For this demonstration, we'll just show a success message.
-    showRegisterMessage('Registration successful! You can now log in with your new account.');
-    // The form is now hidden, and the user can click the "Go to Login" link.
-};
-
-
-document.addEventListener('DOMContentLoaded', initializeApp);
+// Call the initialization function when the page loads
+document.addEventListener('DOMContentLoaded', initPage);
