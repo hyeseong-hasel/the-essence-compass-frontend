@@ -1,281 +1,191 @@
-<!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-900">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Essence Compass</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .bg-stars {
-            background-image: radial-gradient(circle, #fff 1px, transparent 1px);
-            background-size: 40px 40px;
-            background-repeat: repeat;
-        }
-        .scrollable-content {
-            height: calc(100vh - 100px); /* Adjust based on header/footer size */
-            overflow-y: auto;
-        }
-    </style>
-</head>
-<body class="h-full antialiased text-white">
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+body {
+    font-family: 'Inter', sans-serif;
+    /* Prevent vertical scrollbar on initial load if not needed */
+    overflow-x: hidden; 
+}
 
-    <!-- Firebase SDK Imports -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, addDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+/* Base cosmic background styles with animations */
+.bg-cosmic {
+    background: radial-gradient(circle at center, rgba(30, 27, 75, 1) 0%, rgba(20, 15, 50, 1) 100%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    transition: all 1s ease-in-out;
+}
 
-        // Firebase configuration and initialization
-        setLogLevel('debug');
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        
-        let app;
-        let db;
-        let auth;
-        let userId = null;
-        let unsubscribe = null;
+.stars {
+    background-image: radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+                      radial-gradient(2px 2px at 40px 70px, #fff, transparent),
+                      radial-gradient(2px 2px at 50px 100px, #ddd, transparent);
+    background-size: 80px 80px, 120px 120px, 150px 150px;
+    animation: cosmic-drift 60s linear infinite;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
 
-        // Message box functions
-        const showMessage = (message, isError = false) => {
-            const messageBox = document.getElementById('message-box');
-            const messageText = document.getElementById('message-text');
-            messageText.textContent = message;
-            messageBox.style.display = 'block';
-            messageBox.style.backgroundColor = isError ? '#ef4444' : '#22c55e';
-            setTimeout(() => {
-                messageBox.style.display = 'none';
-            }, 3000);
-        };
+@keyframes cosmic-drift {
+    from { background-position: 0 0; }
+    to { background-position: 100% 100%; }
+}
 
-        // Initialize and authenticate Firebase
-        async function initializeFirebase() {
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
+/* Dynamic state-based effects */
+.state-stuck .stars { animation-duration: 120s; opacity: 0.5; }
+.state-flowing .stars { animation-duration: 40s; opacity: 1; }
+.state-energized .stars { animation-duration: 20s; opacity: 1; }
+.state-confused .stars {
+    animation: cosmic-drift 60s linear infinite, flicker 2s steps(1) infinite;
+    opacity: 0.7;
+}
 
-                // Authentication with custom token or anonymously
-                const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                if (token) {
-                    await signInWithCustomToken(auth, token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+@keyframes flicker {
+    0% { opacity: 0.7; }
+    50% { opacity: 0.4; }
+    100% { opacity: 0.7; }
+}
 
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        document.getElementById('user-id').textContent = userId;
-                        console.log("Authenticated with user ID:", userId);
-                        
-                        // Set up Firestore listener after authentication
-                        if (unsubscribe) {
-                            unsubscribe();
-                        }
-                        const journalRef = collection(db, `artifacts/${appId}/users/${userId}/journal_entries`);
-                        const q = query(journalRef, orderBy("timestamp", "desc"));
+/* Main UI container and button styles */
+.glowing-shadow {
+    box-shadow: 0 0 15px rgba(129, 140, 248, 0.4), 0 0 30px rgba(139, 92, 246, 0.3);
+}
 
-                        unsubscribe = onSnapshot(q, (querySnapshot) => {
-                            const entries = [];
-                            querySnapshot.forEach((doc) => {
-                                entries.push({ id: doc.id, ...doc.data() });
-                            });
-                            renderJournalEntries(entries);
-                            updateProgressMap(entries.length);
-                        }, (error) => {
-                            console.error("Error listening to journal entries:", error);
-                            showMessage("Failed to load journal entries.", true);
-                        });
+.btn-option.selected {
+    background-color: #8B5CF6; /* Violet-600 */
+    color: white;
+}
 
-                    } else {
-                        console.log("No user is signed in.");
-                        userId = null;
-                        document.getElementById('user-id').textContent = 'Loading...';
-                    }
-                });
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                showMessage("Firebase initialization failed. Check the console for details.", true);
-            }
-        }
-        
-        initializeFirebase();
+.btn-glow {
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 0 0 rgba(139, 92, 246, 0);
+}
 
-        // Data saving function
-        window.saveJournalEntry = async () => {
-            if (!userId) {
-                showMessage("Authentication not complete. Please wait.", true);
-                return;
-            }
+.btn-glow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(139, 92, 246, 0.5);
+}
 
-            const trajectory = document.getElementById('trajectory-select').value;
-            const practice = document.getElementById('practice-display').textContent;
-            const entryText = document.getElementById('journal-input').value;
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.01); }
+}
 
-            if (!trajectory || !entryText.trim()) {
-                showMessage("Please select a trajectory and write a journal entry.", true);
-                return;
-            }
-            
-            try {
-                const journalRef = collection(db, `artifacts/${appId}/users/${userId}/journal_entries`);
-                await addDoc(journalRef, {
-                    trajectory: trajectory,
-                    practice: practice,
-                    entryText: entryText,
-                    timestamp: serverTimestamp()
-                });
+.pulsing-card {
+    animation: pulse 8s infinite ease-in-out;
+}
 
-                document.getElementById('journal-input').value = '';
-                showMessage("Entry saved successfully!");
+/* Loading portal animations */
+#loading-portal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #0c0816;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    transition: opacity 1s ease-out;
+}
 
-            } catch (e) {
-                console.error("Error adding document: ", e);
-                showMessage("Failed to save entry. See console for details.", true);
-            }
-        };
+.spark {
+    width: 5px;
+    height: 5px;
+    background-color: #fcd34d;
+    border-radius: 50%;
+    animation: spark-pulse 2s infinite ease-in-out;
+    transition: all 0.5s ease-in-out;
+}
 
-        // UI rendering functions
-        const renderJournalEntries = (entries) => {
-            const journalList = document.getElementById('journal-list');
-            journalList.innerHTML = '';
-            entries.forEach(entry => {
-                const entryDiv = document.createElement('div');
-                const date = entry.timestamp ? new Date(entry.timestamp.seconds * 1000).toLocaleDateString() : 'N/A';
-                entryDiv.className = 'bg-slate-800 p-4 rounded-xl shadow-lg mb-4';
-                entryDiv.innerHTML = `
-                    <p class="text-xs text-slate-400">${date}</p>
-                    <p class="mt-1"><span class="font-bold">Trajectory:</span> ${entry.trajectory}</p>
-                    <p><span class="font-bold">Micro-Practice:</span> ${entry.practice}</p>
-                    <p class="mt-2 text-slate-300 italic">"${entry.entryText}"</p>
-                `;
-                journalList.appendChild(entryDiv);
-            });
-        };
-        
-        const updateProgressMap = (count) => {
-            const mapContainer = document.getElementById('progress-map');
-            mapContainer.innerHTML = '';
-            
-            const totalCircles = 20; // A fixed number for the map
-            for (let i = 0; i < totalCircles; i++) {
-                const circle = document.createElement('div');
-                const isLit = i < count;
-                circle.className = `w-4 h-4 rounded-full transition-all duration-300 ease-in-out transform hover:scale-125`;
-                circle.style.backgroundColor = isLit ? '#fde047' : '#334155';
-                
-                // Add a simple effect for the "constellation" feel
-                if (isLit) {
-                    circle.style.boxShadow = '0 0 8px #fde047, 0 0 16px #fde047';
-                }
-                mapContainer.appendChild(circle);
-            }
-        };
+@keyframes spark-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.5); opacity: 1; }
+}
 
-        // Trajectory change handler
-        window.updatePractice = () => {
-            const select = document.getElementById('trajectory-select');
-            const display = document.getElementById('practice-display');
-            const trajectory = select.value;
-            let practice = '';
+.cosmic-dust-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 1s ease-in;
+}
 
-            // Hardcoded recommendations for simplicity, as per the app concept
-            switch (trajectory) {
-                case 'energized':
-                    practice = 'Embrace this flow. Spend 15 minutes on a creative project or movement.';
-                    break;
-                case 'stuck':
-                    practice = 'Reflect on a small, tangible step you can take today to move forward.';
-                    break;
-                case 'confused':
-                    practice = 'Sit in silence for 5 minutes and listen to your intuition without judgment.';
-                    break;
-                case 'unaligned':
-                    practice = 'Connect with your body. Try a simple breathing exercise to ground yourself.';
-                    break;
-                default:
-                    practice = 'Select your current trajectory to receive a micro-practice.';
-                    break;
-            }
-            display.textContent = practice;
-        };
-    </script>
+.swoosh-transition {
+    animation: swoosh-expand 1s ease-in-out forwards;
+}
 
-    <!-- App UI -->
-    <div class="fixed top-0 left-0 w-full h-full -z-10 bg-slate-900 bg-stars"></div>
-    
-    <div class="min-h-full flex items-center justify-center p-4">
-        <div class="w-full max-w-2xl bg-slate-900 bg-opacity-80 backdrop-blur-sm rounded-3xl shadow-2xl p-6 md:p-10 border border-slate-700">
-            
-            <!-- Message Box -->
-            <div id="message-box" class="fixed top-4 left-1/2 -translate-x-1/2 hidden bg-green-500 text-white text-center p-3 rounded-xl shadow-lg transition-all duration-300 z-50">
-                <span id="message-text"></span>
-            </div>
+@keyframes swoosh-expand {
+    from { transform: scale(1); opacity: 1; }
+    to { transform: scale(200); opacity: 0; }
+}
 
-            <!-- Header -->
-            <div class="text-center mb-8">
-                <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-teal-400 via-sky-400 to-blue-500 text-transparent bg-clip-text">
-                    The Essence Compass
-                </h1>
-                <p class="text-sm md:text-base text-slate-400 mt-2">
-                    Navigate your inner world to find your authentic self.
-                </p>
-                <div class="mt-4 text-xs md:text-sm text-slate-500">
-                    Your User ID: <span id="user-id" class="text-slate-300 font-mono break-all">Loading...</span>
-                </div>
-            </div>
+/* Guiding light orb */
+#guiding-light-orb {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #fcd34d;
+    opacity: 0;
+    box-shadow: 0 0 10px #fcd34d, 0 0 20px #fcd34d;
+    transition: all 1s ease-in-out;
+    z-index: 10;
+}
 
-            <!-- Interstellar Activation Map (Progress Tracker) -->
-            <div class="mb-8 p-6 bg-slate-800 rounded-2xl border border-slate-700">
-                <h2 class="text-2xl font-bold mb-4">Your Soul Essence Map</h2>
-                <div id="progress-map" class="grid grid-cols-5 gap-4 justify-items-center">
-                    <!-- Circles will be rendered here by JS -->
-                </div>
-                <p class="text-sm text-center text-slate-400 mt-4">
-                    Your map grows with each daily check-in.
-                </p>
-            </div>
+/* Radiate animation for content */
+.radiate {
+    animation: radiate-content 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
 
-            <!-- Daily Check-in -->
-            <div class="mb-8 p-6 bg-slate-800 rounded-2xl border border-slate-700">
-                <h2 class="text-2xl font-bold mb-4">Daily Check-in</h2>
-                <label for="trajectory-select" class="block text-slate-400 mb-2">My current trajectory is:</label>
-                <select id="trajectory-select" onchange="updatePractice()" class="w-full p-3 rounded-xl bg-slate-700 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-400">
-                    <option value="" disabled selected>Choose your current state</option>
-                    <option value="energized">Energized</option>
-                    <option value="stuck">Stuck</option>
-                    <option value="confused">Confused</option>
-                    <option value="unaligned">Unaligned</option>
-                </select>
-                <div id="practice-display" class="mt-4 p-4 rounded-xl bg-slate-700 border border-slate-600 text-slate-300 italic">
-                    Select your current trajectory to receive a micro-practice.
-                </div>
-            </div>
+@keyframes radiate-content {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
 
-            <!-- Transformation Journal -->
-            <div class="p-6 bg-slate-800 rounded-2xl border border-slate-700">
-                <h2 class="text-2xl font-bold mb-4">Transformation Journal</h2>
-                <textarea id="journal-input" rows="4" placeholder="Write about your day, your practice, and any reflections you have..." class="w-full p-3 rounded-xl bg-slate-700 border border-slate-600 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400"></textarea>
-                <button onclick="saveJournalEntry()" class="w-full mt-4 py-3 px-6 rounded-xl text-lg font-semibold bg-blue-600 hover:bg-blue-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 focus:ring-offset-slate-800">
-                    Save Check-in
-                </button>
-            </div>
-            
-            <!-- Past Entries Section -->
-            <div class="mt-8 p-6 bg-slate-800 rounded-2xl border border-slate-700">
-                <h2 class="text-2xl font-bold mb-4">Past Entries</h2>
-                <div id="journal-list" class="space-y-4 max-h-96 overflow-y-auto">
-                    <p class="text-center text-slate-400 italic">No entries yet. Your journal will appear here.</p>
-                </div>
-            </div>
+/* Styles for the progress map circles */
+.map-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #5B21B6; /* Violet-700 */
+    background-color: transparent;
+    transition: all 0.5s ease-in-out;
+    position: relative;
+}
 
-        </div>
-    </div>
-</body>
-</html>
+.map-circle.active {
+    background: radial-gradient(circle, #F472B6, #C084FC);
+    border: none;
+    box-shadow: 0 0 10px #C084FC, 0 0 20px #F472B6;
+    animation: glow-pulse 2s infinite;
+}
+
+.map-circle.completed {
+    background: #4C1D95; /* Violet-800 */
+    border-color: #A78BFA; /* Violet-400 */
+}
+
+@keyframes glow-pulse {
+    0%, 100% {
+        box-shadow: 0 0 10px #C084FC, 0 0 20px #F472B6;
+    }
+    50% {
+        box-shadow: 0 0 15px #C084FC, 0 0 30px #F472B6;
+    }
+}

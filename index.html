@@ -1,863 +1,107 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-slate-900">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Essence Compass</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.58/build/Tone.min.js"></script>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
-    <!-- Loading Screen -->
-    <div id="loading-screen" class="loading-screen">
-        <div class="cosmic-loader">
-            <div class="star"></div>
-            <div class="star"></div>
-            <div class="star"></div>
+<body class="h-full antialiased text-white bg-cosmic">
+
+    <!-- Loading Portal -->
+    <div id="loading-portal">
+        <div class="spark"></div>
+        <div class="cosmic-dust-container">
+            <div class="stars" style="animation-delay: 0s;"></div>
+            <div class="stars" style="animation-delay: -10s;"></div>
+            <div class="stars" style="animation-delay: -20s;"></div>
+            <div class="stars" style="animation-delay: -30s;"></div>
         </div>
-        <p>Aligning with your essence...</p>
+        <p id="loading-text" class="text-xl md:text-2xl mt-8 text-slate-300">Aligning with your essence...</p>
     </div>
 
     <!-- Main App Container -->
-    <div id="app-container" class="app-container hidden">
-        <!-- Header -->
-        <header class="app-header">
-            <div class="header-content">
-                <h1 class="app-title">
-                    <i class="fas fa-compass cosmic-icon"></i>
+    <div id="main-app" class="min-h-full flex items-center justify-center p-4 opacity-0 transition-opacity duration-500">
+        <div class="w-full max-w-2xl bg-slate-900 bg-opacity-70 backdrop-blur-sm rounded-3xl shadow-2xl p-6 md:p-10 border border-violet-800 glowing-shadow pulsing-card">
+            
+            <!-- Message Box -->
+            <div id="message-box" class="fixed top-4 left-1/2 -translate-x-1/2 hidden bg-green-500 text-white text-center p-3 rounded-xl shadow-lg transition-all duration-300 z-50">
+                <span id="message-text"></span>
+            </div>
+
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-violet-300 via-fuchsia-400 to-rose-400 text-transparent bg-clip-text">
                     The Essence Compass
                 </h1>
-                <div class="user-info">
-                    <div class="cosmic-dust">
-                        <i class="fas fa-star"></i>
-                        <span id="cosmic-dust-count">0</span> Cosmic Dust
+                <p class="text-sm md:text-base text-slate-300 mt-2">
+                    Welcome back, <span id="user-name" class="font-bold text-fuchsia-300">Visionary</span>.
+                </p>
+            </div>
+
+            <!-- Interstellar Activation Map (Progress Tracker) -->
+            <div class="mb-8 p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
+                <h2 class="text-2xl font-bold mb-4 text-center">Your Soul Essence Map</h2>
+                <div id="progress-map" class="grid grid-cols-5 gap-4 justify-items-center">
+                    <!-- Circles will be rendered here by JS -->
+                </div>
+                <p class="text-sm text-center text-slate-400 mt-4">
+                    Your map grows brighter with each check-in.
+                </p>
+            </div>
+
+            <!-- Daily Compass Check-in -->
+            <div class="mb-8 p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
+                <h2 class="text-2xl font-bold mb-2 text-center">Your Daily Compass</h2>
+                <p class="text-slate-400 mb-6 text-center">Connect with your essence and receive guidance for today.</p>
+
+                <div class="mb-6">
+                    <p class="font-semibold text-sm mb-2 text-center">What is your heart center telling you right now?</p>
+                    <div class="space-y-4">
+                        <p class="font-semibold text-sm text-slate-400">Current Energy State:</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button onclick="updateState('energy', 'Stuck', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Stuck</button>
+                            <button onclick="updateState('energy', 'Flowing', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Flowing</button>
+                            <button onclick="updateState('energy', 'Energized', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Energized</button>
+                            <button onclick="updateState('energy', 'Confused', this)" class="btn-option energy-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Confused</button>
+                        </div>
                     </div>
+                </div>
+
+                <div>
+                    <p class="font-semibold text-sm text-slate-400">How is your presence showing up today?</p>
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <button onclick="updateState('presence', 'Scattered', this)" class="btn-option presence-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Scattered</button>
+                        <button onclick="updateState('presence', 'Centered', this)" class="btn-option presence-btn py-3 rounded-full border border-violet-600 font-semibold transition-colors duration-200 hover:bg-violet-600 btn-glow">Centered</button>
+                    </div>
+                </div>
+
+                <div id="practice-display" class="mt-6 p-4 rounded-2xl bg-slate-700 border border-slate-600 text-slate-300 italic text-center radiate">
+                    Select your current energy and presence to receive a personalized micro-practice.
                 </div>
             </div>
-        </header>
 
-        <!-- Navigation -->
-        <nav class="main-nav selections-container">
-            <button class="nav-btn active" data-section="compass">
-                <i class="fas fa-compass"></i>
-                <span>Daily Compass</span>
-            </button>
-            <button class="nav-btn" data-section="map">
-                <i class="fas fa-map-marked-alt"></i>
-                <span>Soul Map</span>
-            </button>
-            <button class="nav-btn" data-section="journal">
-                <i class="fas fa-book"></i>
-                <span>Journal</span>
-            </button>
-            <button class="nav-btn" data-section="roses">
-                <i class="fas fa-heart"></i>
-                <span>Rose Circle</span>
-            </button>
-        </nav>
-
-        <!-- Main Content Area -->
-        <main class="main-content">
-            <!-- Daily Compass Section -->
-            <section id="compass-section" class="content-section active">
-                <div class="section-header">
-                    <h2>Your Daily Compass</h2>
-                    <p>Connect with your essence and receive guidance for today</p>
-                </div>
-
-                <div class="compass-container">
-                    <div class="compass-visual" id="compass-visual">
-                        <div class="compass-needle" id="compass-needle"></div>
-                        <div class="compass-center">
-                            <i class="fas fa-star"></i>
-                        </div>
-                    </div>
-
-                    <div class="check-in-card" id="check-in-card">
-                        <h3>Heart Center Check-in</h3>
-                        <div class="question-container">
-                            <p id="current-question">What is your heart center telling you right now?</p>
-                            
-                            <div class="energy-selector">
-                                <h4>Current Energy State:</h4>
-                                <div class="energy-options">
-                                    <button class="energy-btn" data-energy="stuck">
-                                        <i class="fas fa-anchor"></i>
-                                        Stuck
-                                    </button>
-                                    <button class="energy-btn" data-energy="flowing">
-                                        <i class="fas fa-water"></i>
-                                        Flowing
-                                    </button>
-                                    <button class="energy-btn" data-energy="energized">
-                                        <i class="fas fa-bolt"></i>
-                                        Energized
-                                    </button>
-                                    <button class="energy-btn" data-energy="confused">
-                                        <i class="fas fa-question-circle"></i>
-                                        Confused
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="presence-selector">
-                                <h4>How is your presence showing up today?</h4>
-                                <div class="presence-slider">
-                                    <input type="range" id="presence-range" min="1" max="10" value="5">
-                                    <div class="slider-labels">
-                                        <span>Scattered</span>
-                                        <span>Centered</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button class="primary-btn" id="get-guidance">
-                                <i class="fas fa-magic"></i>
-                                Receive Guidance
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="guidance-card hidden" id="guidance-card">
-                        <h3>Your Micro-Practice</h3>
-                        <div class="practice-content">
-                            <div class="practice-icon">
-                                <i class="fas fa-heart" id="practice-icon"></i>
-                            </div>
-                            <h4 id="practice-title">30-Second Heart Hello</h4>
-                            <p id="practice-description">Place your hand on your heart and take three deep breaths...</p>
-                            <div class="practice-timer">
-                                <button class="timer-btn" id="start-practice">
-                                    <i class="fas fa-play"></i>
-                                    Start Practice
-                                </button>
-                                <div class="timer-display hidden" id="timer-display">
-                                    <span id="timer-minutes">00</span>:<span id="timer-seconds">30</span>
-                                </div>
-                            </div>
-                        </div>
-                        <button class="secondary-btn" id="complete-practice">
-                            <i class="fas fa-check"></i>
-                            Mark Complete
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Soul Essence Map Section -->
-            <section id="map-section" class="content-section">
-                <div class="section-header">
-                    <h2>Your Soul Essence Map</h2>
-                    <p>Track your journey through the cosmos of self-discovery</p>
-                </div>
-
-                <div class="map-container">
-                    <div class="constellation-canvas" id="constellation-canvas">
-                        <canvas id="star-map" width="400" height="300"></canvas>
-                        <div class="map-legend">
-                            <div class="legend-item">
-                                <div class="star completed"></div>
-                                <span>Completed Practices</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="star active"></div>
-                                <span>Current Focus</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="star future"></div>
-                                <span>Future Milestones</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="progress-stats">
-                        <div class="stat-card">
-                            <h3>Journey Progress</h3>
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="journey-progress" style="width: 25%"></div>
-                            </div>
-                            <p>25% Complete</p>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <h3>Cosmic Achievements</h3>
-                            <div class="achievements">
-                                <div class="achievement unlocked">
-                                    <i class="fas fa-star"></i>
-                                    <span>First Steps</span>
-                                </div>
-                                <div class="achievement locked">
-                                    <i class="fas fa-moon"></i>
-                                    <span>Lunar Wisdom</span>
-                                </div>
-                                <div class="achievement locked">
-                                    <i class="fas fa-sun"></i>
-                                    <span>Solar Radiance</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Transformation Journal Section -->
-            <section id="journal-section" class="content-section">
-                <div class="section-header">
-                    <h2>Transformation Journal</h2>
-                    <p>Chronicle your journey from temporary fixes to permanent transformation</p>
-                </div>
-
-                <div class="journal-container">
-                    <div class="journal-prompt">
-                        <h3>Today's Reflection</h3>
-                        <p id="journal-prompt-text">How can you reframe your current situation as an opportunity instead of a limitation?</p>
-                        <button class="tertiary-btn" id="new-prompt">
-                            <i class="fas fa-refresh"></i>
-                            New Prompt
-                        </button>
-                    </div>
-
-                    <div class="journal-editor">
-                        <textarea 
-                            id="journal-entry" 
-                            placeholder="Begin writing your thoughts and insights..."
-                            rows="10"
-                        ></textarea>
-                        <div class="journal-controls">
-                            <div class="word-count">
-                                <span id="word-count">0</span> words
-                            </div>
-                            <button class="primary-btn" id="save-entry">
-                                <i class="fas fa-save"></i>
-                                Save Entry
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="journal-history">
-                        <h3>Recent Entries</h3>
-                        <div class="entry-list" id="entry-list">
-                            <!-- Journal entries will be loaded here -->
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Digital Rose Circle Section -->
-            <section id="roses-section" class="content-section">
-                <div class="section-header">
-                    <h2>Digital Rose Circle</h2>
-                    <p>Send and receive anonymous roses of encouragement and love</p>
-                </div>
-
-                <div class="rose-circle-container">
-                    <div class="send-rose-card">
-                        <h3>Send a Digital Rose</h3>
-                        <div class="rose-visual">
-                            <i class="fas fa-rose"></i>
-                        </div>
-                        <textarea 
-                            id="rose-message" 
-                            placeholder="Write a loving, encouraging message..."
-                            rows="3"
-                            maxlength="150"
-                        ></textarea>
-                        <div class="rose-controls">
-                            <span class="char-count">
-                                <span id="rose-char-count">0</span>/150
-                            </span>
-                            <button class="primary-btn" id="send-rose">
-                                <i class="fas fa-paper-plane"></i>
-                                Send Rose
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="received-roses">
-                        <h3>Roses Received</h3>
-                        <div class="roses-container" id="roses-container">
-                            <div class="rose-message">
-                                <div class="rose-icon">
-                                    <i class="fas fa-rose"></i>
-                                </div>
-                                <p>"You are exactly where you need to be in your journey. Trust the process."</p>
-                                <small>2 hours ago</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="self-love-prompt">
-                        <h3>Self-Love Reflection</h3>
-                        <p id="self-love-prompt">What is one thing you can appreciate about yourself today?</p>
-                        <button class="secondary-btn" id="new-self-love-prompt">
-                            <i class="fas fa-heart"></i>
-                            New Reflection
-                        </button>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- Success Modal -->
-    <div id="success-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-icon">
-                <i class="fas fa-star"></i>
+            <!-- Transformation Journal -->
+            <div class="p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
+                <h2 class="text-2xl font-bold mb-4 text-center">Transformation Journal</h2>
+                <textarea id="journal-input" rows="4" placeholder="Share your reflections and discoveries here..." class="w-full p-3 rounded-xl bg-slate-700 border border-slate-600 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-400"></textarea>
+                <button onclick="saveJournalEntry()" class="w-full mt-4 py-3 px-6 rounded-full text-lg font-semibold bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fuchsia-400 focus:ring-offset-slate-800 btn-glow">
+                    Save Check-in
+                </button>
             </div>
-            <h3 id="modal-title">Practice Complete!</h3>
-            <p id="modal-message">You've earned 5 Cosmic Dust points!</p>
-            <button class="primary-btn" id="close-modal">Continue</button>
+            
+            <!-- Past Entries Section -->
+            <div class="mt-8 p-6 bg-slate-800 rounded-2xl border border-violet-800 radiate">
+                <h2 class="text-2xl font-bold mb-4 text-center">Your Journey So Far</h2>
+                <div id="journal-list" class="space-y-4 max-h-96 overflow-y-auto">
+                    <p class="text-center text-slate-400 italic">Your cosmic journey begins here. Entries will appear after your first check-in.</p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Background Stars -->
-    <div class="stars-background">
-        <div class="stars stars1"></div>
-        <div class="stars stars2"></div>
-        <div class="stars stars3"></div>
-    </div>
-
-    <script src="main.js"></script>
-
-    <style>
-/* Reset and Base Styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-:root {
-    /* Cosmic Color Palette */
-    --deep-space: #0B0C1E;
-    --cosmic-purple: #1A0B2E;
-    --nebula-blue: #16213E;
-    --starlight: #E8F4FD;
-    --golden-glow: #FFD700;
-    --rose-pink: #FF6B9D;
-    --aurora-green: #4ECDC4;
-    --cosmic-dust: rgba(255, 215, 0, 0.3);
-    
-    /* Gradients */
-    --cosmic-gradient: linear-gradient(135deg, var(--deep-space) 0%, var(--cosmic-purple) 50%, var(--nebula-blue) 100%);
-    --aurora-gradient: linear-gradient(90deg, var(--aurora-green), var(--rose-pink), var(--golden-glow));
-    --glass-gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-    
-    /* Typography */
-    --primary-font: 'Inter', sans-serif;
-    --display-font: 'Playfair Display', serif;
-    
-    /* Spacing */
-    --space-xs: 0.5rem;
-    --space-sm: 1rem;
-    --space-md: 1.5rem;
-    --space-lg: 2rem;
-    --space-xl: 3rem;
-    
-    /* Borders */
-    --border-radius: 16px;
-    --border-radius-lg: 24px;
-}
-
-body {
-    font-family: var(--primary-font);
-    background: var(--cosmic-gradient);
-    color: var(--starlight);
-    min-height: 100vh;
-    overflow-x: hidden;
-    position: relative;
-}
-
-/* Loading Screen */
-.loading-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--cosmic-gradient);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    transition: opacity 0.5s ease, visibility 0.5s ease;
-}
-
-.loading-screen.hidden {
-    opacity: 0;
-    visibility: hidden;
-}
-
-.cosmic-loader {
-    position: relative;
-    width: 60px;
-    height: 60px;
-    margin-bottom: var(--space-md);
-}
-
-.cosmic-loader .star {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    background: var(--golden-glow);
-    border-radius: 50%;
-    animation: cosmic-pulse 2s ease-in-out infinite;
-}
-
-.cosmic-loader .star:nth-child(1) {
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    animation-delay: 0s;
-}
-
-.cosmic-loader .star:nth-child(2) {
-    top: 50%;
-    right: 0;
-    transform: translateY(-50%);
-    animation-delay: 0.7s;
-}
-
-.cosmic-loader .star:nth-child(3) {
-    bottom: 0;
-    left: 0;
-    animation-delay: 1.4s;
-}
-
-@keyframes cosmic-pulse {
-    0%, 100% { opacity: 0.3; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.2); }
-}
-
-/* Background Stars Animation */
-.stars-background {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    z-index: -1;
-}
-
-.stars {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: 
-        radial-gradient(2px 2px at 20px 30px, rgba(255, 255, 255, 0.8), transparent),
-        radial-gradient(2px 2px at 40px 70px, rgba(255, 215, 0, 0.6), transparent),
-        radial-gradient(1px 1px at 90px 40px, rgba(255, 255, 255, 0.5), transparent),
-        radial-gradient(1px 1px at 130px 80px, rgba(76, 205, 196, 0.4), transparent),
-        radial-gradient(2px 2px at 160px 30px, rgba(255, 107, 157, 0.6), transparent);
-    background-repeat: repeat;
-    background-size: 200px 100px;
-    animation: sparkle 20s linear infinite;
-}
-
-.stars2 {
-    background-size: 400px 200px;
-    animation: sparkle 40s linear infinite reverse;
-}
-
-.stars3 {
-    background-size: 300px 150px;
-    animation: sparkle 30s linear infinite;
-}
-
-@keyframes sparkle {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-200px); }
-}
-
-/* App Container */
-.app-container {
-    min-height: 100vh;
-    padding-bottom: 80px;
-    transition: opacity 0.5s ease;
-}
-
-.app-container.hidden {
-    opacity: 0;
-}
-
-/* Header */
-.app-header {
-    padding: var(--space-md) var(--space-sm);
-    backdrop-filter: blur(20px);
-    background: rgba(11, 12, 30, 0.8);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.app-title {
-    font-family: var(--display-font);
-    font-size: 1.8rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    background: var(--aurora-gradient);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.cosmic-icon {
-    font-size: 1.5rem;
-    color: var(--golden-glow);
-    animation: gentle-rotate 10s linear infinite;
-}
-
-@keyframes gentle-rotate {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.cosmic-dust {
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-    background: rgba(255, 215, 0, 0.1);
-    padding: var(--space-xs) var(--space-sm);
-    border-radius: var(--border-radius);
-    border: 1px solid rgba(255, 215, 0, 0.3);
-    backdrop-filter: blur(10px);
-}
-
-.cosmic-dust i {
-    color: var(--golden-glow);
-    animation: twinkle 2s ease-in-out infinite;
-}
-
-@keyframes twinkle {
-    0%, 100% { opacity: 0.7; }
-    50% { opacity: 1; transform: scale(1.1); }
-}
-
-/* Navigation */
-.main-nav {
-    display: flex;
-    justify-content: center;
-    padding: var(--space-sm);
-    background: rgba(26, 11, 46, 0.6);
-    backdrop-filter: blur(15px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    position: sticky;
-    top: 78px;
-    z-index: 99;
-}
-
-.nav-btn {
-    background: transparent;
-    border: none;
-    color: rgba(232, 244, 253, 0.7);
-    padding: var(--space-sm) var(--space-md);
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-xs);
-    font-size: 0.875rem;
-    position: relative;
-    overflow: hidden;
-}
-
-.nav-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: var(--glass-gradient);
-    transition: left 0.3s ease;
-    z-index: -1;
-}
-
-.nav-btn:hover::before,
-.nav-btn.active::before {
-    left: 0;
-}
-
-.nav-btn:hover,
-.nav-btn.active {
-    color: var(--starlight);
-    transform: translateY(-2px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.nav-btn i {
-    font-size: 1.2rem;
-}
-
-/* Main Content */
-.main-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: var(--space-lg) var(--space-sm);
-}
-
-.content-section {
-    display: none;
-    animation: fadeInUp 0.5s ease;
-}
-
-.content-section.active {
-    display: block;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.section-header {
-    text-align: center;
-    margin-bottom: var(--space-xl);
-}
-
-.section-header h2 {
-    font-family: var(--display-font);
-    font-size: 2.5rem;
-    font-weight: 600;
-    background: var(--aurora-gradient);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: var(--space-sm);
-}
-
-.section-header p {
-    color: rgba(232, 244, 253, 0.8);
-    font-size: 1.1rem;
-}
-
-/* Glass Card Styles */
-.glass-card {
-    background: var(--glass-gradient);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--border-radius-lg);
-    padding: var(--space-lg);
-    position: relative;
-    overflow: hidden;
-}
-
-.glass-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--aurora-gradient);
-    opacity: 0.6;
-}
-
-/* Daily Compass Styles */
-.compass-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-xl);
-    align-items: start;
-}
-
-.compass-visual {
-    position: relative;
-    width: 300px;
-    height: 300px;
-    margin: 0 auto;
-    background: radial-gradient(circle, rgba(255, 215, 0, 0.1) 0%, transparent 70%);
-    border-radius: 50%;
-    border: 2px solid rgba(255, 215, 0, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.compass-needle {
-    position: absolute;
-    width: 4px;
-    height: 120px;
-    background: linear-gradient(to bottom, var(--golden-glow), var(--rose-pink));
-    border-radius: 2px;
-    transform-origin: bottom center;
-    transition: transform 2s ease-in-out;
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
-}
-
-.compass-center {
-    width: 40px;
-    height: 40px;
-    background: var(--golden-glow);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
-    z-index: 2;
-}
-
-.compass-center i {
-    color: var(--deep-space);
-    font-size: 1.2rem;
-}
-
-.check-in-card,
-.guidance-card {
-    background: var(--glass-gradient);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--border-radius-lg);
-    padding: var(--space-lg);
-    position: relative;
-    overflow: hidden;
-}
-
-.check-in-card::before,
-.guidance-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--aurora-gradient);
-    opacity: 0.6;
-}
-
-.energy-options {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-sm);
-    margin-top: var(--space-sm);
-}
-
-.energy-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--border-radius);
-    padding: var(--space-md);
-    color: var(--starlight);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-xs);
-}
-
-.energy-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-}
-
-.energy-btn.selected {
-    background: rgba(255, 215, 0, 0.2);
-    border-color: var(--golden-glow);
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
-}
-
-.presence-selector {
-    margin: var(--space-lg) 0;
-}
-
-.presence-slider {
-    margin-top: var(--space-sm);
-}
-
-.presence-slider input[type="range"] {
-    width: 100%;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    outline: none;
-    -webkit-appearance: none;
-}
-
-.presence-slider input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
-    background: var(--golden-glow);
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
-}
-
-.slider-labels {
-    display: flex;
-    justify-content: space-between;
-    margin-top: var(--space-xs);
-    font-size: 0.875rem;
-    color: rgba(232, 244, 253, 0.7);
-}
-
-/* Button Styles */
-.primary-btn,
-.secondary-btn,
-.tertiary-btn {
-    padding: var(--space-md) var(--space-lg);
-    border-radius: var(--border-radius);
-    border: none;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-xs);
-    font-family: var(--primary-font);
-    position: relative;
-    overflow: hidden;
-}
-
-.primary-btn {
-    background: var(--aurora-gradient);
-    color: var(--deep-space);
-    font-weight: 600;
-}
-
-.primary-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4);
-}
-
-.secondary-btn {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--starlight);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.secondary-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-}
-
-.tertiary-btn {
-    background: transparent;
-    color: var(--aurora)
+    <script src="main.js" type="module"></script>
+</body>
+</html>
